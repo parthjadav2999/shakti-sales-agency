@@ -14,11 +14,15 @@ REM Get current date/time for commit message
 for /f "tokens=1-3 delims=/" %%a in ('date /t') do set mydate=%%a-%%b-%%c
 for /f "tokens=1-2 delims=: " %%a in ('time /t') do set mytime=%%a:%%b
 
-REM Commit with timestamp
+REM Commit and push source code
+echo Saving your code changes...
 git commit -m "Update: %mydate% %mytime%"
-
-REM Push to GitHub (triggers auto-deploy)
 git push origin main
+
+REM Build and deploy to GitHub Pages
+echo.
+echo Building and publishing to GitHub Pages...
+call npm run deploy
 
 echo.
 echo ==========================================
