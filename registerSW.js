@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/shakti-sales-agency/sw.js', { scope: '/shakti-sales-agency/' })})}
