@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 import fs from 'fs'
 import path from 'path'
 
@@ -8,6 +9,22 @@ export default defineConfig({
   base: '/shakti-sales-agency/',
   plugins: [
     react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      manifest: {
+        name: 'Shakti Sales Agency',
+        short_name: 'Shakti Sales',
+        description: 'Billing and Product Catalog Application',
+        theme_color: '#4f46e5',
+        icons: [
+          {
+            src: 'vite.svg',
+            sizes: 'any',
+            type: 'image/svg+xml'
+          }
+        ]
+      }
+    }),
     {
       name: 'sync-html-middleware',
       configureServer(server) {
