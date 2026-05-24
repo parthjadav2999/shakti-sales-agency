@@ -912,7 +912,7 @@
 
     <!-- ==================== A. INVOICE DETAIL VIEW MODAL ==================== -->
     <div x-show="selectedInvoice !== null" class="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-transition x-cloak>
-        <div class="bg-white w-full max-w-4xl rounded-3xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95" @click.away="selectedInvoice = null">
+        <div class="bg-white w-full max-w-4xl rounded-3xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95" @click.away="if (!showPaymentModal) selectedInvoice = null">
             <!-- Modal Navigation Header -->
             <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between no-print">
                 <div class="flex items-center gap-2">
