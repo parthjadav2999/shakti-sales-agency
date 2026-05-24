@@ -1,0 +1,2879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shakti Sales Agency - Portable Billing System</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- AlpineJS -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- html2pdf.js for high-fidelity PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Modern Glassmorphic Styles */
+        .glass {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .dark-glass {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        
+        /* Hide scrollbar utility */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Printable styles */
+        @media print {
+            body:not(.print-mode-thermal) {
+                background: white !important;
+                color: black !important;
+                font-size: 12px !important;
+            }
+            body.print-mode-thermal {
+                background: white !important;
+                color: black !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            body:not(.print-mode-thermal) .print-card {
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            body.print-mode-thermal #invoice-print-area {
+                display: none !important;
+            }
+            body.print-mode-thermal .thermal-receipt,
+            body.print-mode-thermal .thermal-receipt * {
+                visibility: visible !important;
+            }
+        }
+
+        /* --- THERMAL RECEIPT STYLE SUITE --- */
+        .thermal-receipt {
+            display: none;
+        }
+        body.print-mode-thermal .thermal-receipt {
+            display: block !important;
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 80mm !important;
+            margin: 0 !important;
+            padding: 4mm 4mm 4mm 4mm !important;
+            background: white !important;
+            color: black !important;
+            font-family: 'Courier New', Courier, monospace !important;
+            font-size: 10pt !important;
+            line-height: 1.3 !important;
+            border: none !important;
+            box-sizing: border-box !important;
+            overflow: visible !important;
+        }
+        .thermal-dotted {
+            border-top: 1px dashed #000 !important;
+            margin: 6px 0 !important;
+            width: 100% !important;
+            display: block !important;
+            visibility: visible !important;
+        }
+        .thermal-double-dotted {
+            border-top: 3px double #000 !important;
+            margin: 6px 0 !important;
+            width: 100% !important;
+            display: block !important;
+            visibility: visible !important;
+        }
+        body.print-mode-thermal .thermal-receipt .grid {
+            width: 100% !important;
+            overflow: visible !important;
+        }
+
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col md:flex-row antialiased overflow-x-hidden"
+      x-data="billingApp()" x-init="initData()" x-cloak>
+
+    <!-- ==================== SIDEBAR / NAVIGATION (DESKTOP) ==================== -->
+    <aside class="no-print hidden md:flex md:w-64 bg-slate-900 text-white flex-col flex-shrink-0 relative">
+        <!-- Sidebar Branding -->
+        <div class="p-6 border-b border-slate-800">
+            <h1 class="text-xl font-black font-outfit tracking-wider text-indigo-400">SHAKTI SALES</h1>
+            <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Billing Software</p>
+        </div>
+
+        <!-- Sidebar Navigation Links -->
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"/></svg>
+                Dashboard
+            </button>
+            <button @click="activeTab = 'invoices'" :class="activeTab === 'invoices' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Invoices
+            </button>
+            <button @click="activeTab = 'create-invoice'; resetInvoiceForm()" :class="activeTab === 'create-invoice' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                New Invoice
+            </button>
+            <button @click="activeTab = 'products'" :class="activeTab === 'products' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                Product Catalog
+            </button>
+            <button @click="activeTab = 'customers'" :class="activeTab === 'customers' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                Customers
+            </button>
+        </nav>
+
+        <!-- Sync & Backup Utilities (Solves file:// origin sandboxing) -->
+        <div class="p-4 border-t border-slate-800 space-y-2">
+            <button @click="exportBackupData()" class="w-full py-2 bg-indigo-900/30 text-indigo-400 hover:text-indigo-300 rounded-lg text-xs font-bold transition-all border border-indigo-500/30 flex items-center justify-center gap-1.5" title="Download backup JSON file">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Export Backup
+            </button>
+            <button @click="$refs.importFileSidebar.click()" class="w-full py-2 bg-slate-800 text-slate-400 hover:text-white rounded-lg text-xs font-bold transition-all border border-slate-700 flex items-center justify-center gap-1.5" title="Import backup JSON file">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                Import Backup
+            </button>
+            <input type="file" x-ref="importFileSidebar" @change="importBackupData($event)" accept=".json" class="hidden">
+            <button @click="seedDemoData()" class="w-full py-1.5 bg-slate-900 text-slate-500 hover:text-slate-400 rounded-lg text-[10px] font-bold transition-all">
+                Reset & Load Defaults
+            </button>
+        </div>
+    </aside>
+
+    <!-- ==================== HEADER BAR (MOBILE) ==================== -->
+    <header class="no-print md:hidden bg-slate-900 text-white px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-md">
+        <div>
+            <h1 class="text-lg font-black font-outfit text-indigo-400 tracking-wider">SHAKTI SALES</h1>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">Mobile Billing</p>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <button @click="exportBackupData()" class="p-2 bg-slate-800 border border-slate-700 rounded-lg text-indigo-400" title="Export Backup">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            </button>
+            <button @click="$refs.importFileMobile.click()" class="p-2 bg-slate-800 border border-slate-700 rounded-lg text-indigo-400" title="Import Backup">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            </button>
+            <input type="file" x-ref="importFileMobile" @change="importBackupData($event)" accept=".json" class="hidden">
+        </div>
+    </header>
+
+    <!-- ==================== MAIN CONTENT WRAPPER ==================== -->
+    <main class="flex-1 p-4 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full pb-24 md:pb-8">
+
+        <!-- ==================== 1. DASHBOARD VIEW ==================== -->
+        <div x-show="activeTab === 'dashboard'" x-transition class="space-y-8">
+            <!-- Sleek Dark Professional Header Card -->
+            <div class="relative overflow-hidden rounded-3xl bg-slate-900 p-6 md:p-8 shadow-xl shadow-slate-900/10 group">
+                <div class="absolute inset-0 bg-gradient-to-r from-slate-900 to-indigo-900 opacity-90"></div>
+                <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-indigo-500 opacity-10 blur-3xl group-hover:opacity-15 transition-opacity duration-700"></div>
+                
+                <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <h2 class="text-2xl md:text-3xl font-black text-white tracking-tight leading-none font-outfit">Dashboard Overview</h2>
+                        <p class="text-slate-400 text-sm mt-2 opacity-90">Welcome to Shakti Sales Agency. Expose, backup, and trace your local billing data.</p>
+                    </div>
+                    <button @click="activeTab = 'create-invoice'; resetInvoiceForm()" class="self-start md:self-auto bg-white text-slate-950 font-bold text-sm px-5 py-3 rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center gap-2">
+                        <svg class="w-4 h-4 stroke-[3]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        New Invoice
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sync Info Banner (Only shows when loaded via file:// protocol) -->
+            <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex items-start gap-3 no-print" x-show="window.location.protocol === 'file:'">
+                <div class="w-8 h-8 rounded-full bg-indigo-500 flex-shrink-0 flex items-center justify-center text-white font-bold text-sm font-outfit">i</div>
+                <div class="text-xs text-indigo-950 font-semibold space-y-1">
+                    <p class="font-bold text-sm leading-tight text-indigo-900">Browser Security Sandbox Notice</p>
+                    <p class="leading-relaxed opacity-85">Because you opened this HTML page directly as a local file (`file://`), the browser isolates its database from your desktop development server (`http://localhost:5173`).</p>
+                    <p class="font-bold pt-1">To easily synchronize or view your desktop data here: click "Export Backup" on the sidebar/header of your PC system and import that JSON file into this page!</p>
+                </div>
+            </div>
+
+            <!-- Dashboard Stats Row -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Stat Card 1 -->
+                <div @click="activeTab = 'invoices'; statusFilter = 'All'" class="bg-white p-6 rounded-3xl border border-slate-100 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <span class="text-5xl font-black">₹</span>
+                    </div>
+                    <div class="relative z-10 flex flex-col justify-between h-full">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold shadow-sm">₹</div>
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Sales</span>
+                        </div>
+                        <h3 class="text-3xl font-black text-slate-900 mt-4" x-text="'₹' + formatIndianRupee(getStats().revenue)">₹0</h3>
+                        <p class="text-xs text-slate-400 mt-2 font-bold bg-slate-50 inline-block px-2 py-1 rounded-lg" x-text="invoices.length + ' Invoices'"></p>
+                    </div>
+                </div>
+
+                <!-- Stat Card 2 -->
+                <div @click="activeTab = 'invoices'; statusFilter = 'Paid'" class="bg-white p-6 rounded-3xl border border-slate-100 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <svg class="w-16 h-16 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div class="relative z-10 flex flex-col justify-between h-full">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 font-bold shadow-sm">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            </div>
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Received</span>
+                        </div>
+                        <h3 class="text-3xl font-black text-emerald-600 mt-4" x-text="'₹' + formatIndianRupee(getStats().received)">₹0</h3>
+                        <div class="mt-2 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg inline-block" x-text="getPaidCount() + ' Fully Paid'"></div>
+                    </div>
+                </div>
+
+                <!-- Stat Card 3 -->
+                <div @click="activeTab = 'invoices'; statusFilter = 'Pending'" class="bg-white p-6 rounded-3xl border border-slate-100 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <svg class="w-16 h-16 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    </div>
+                    <div class="relative z-10 flex flex-col justify-between h-full">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600 font-bold shadow-sm">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Pending</span>
+                        </div>
+                        <h3 class="text-3xl font-black text-rose-600 mt-4" x-text="'₹' + formatIndianRupee(getStats().pending)">₹0</h3>
+                        <div class="flex gap-2 mt-2">
+                            <span class="text-[10px] font-bold bg-amber-50 text-amber-600 px-2 py-1 rounded-lg" x-text="getPendingCount() + ' Unpaid'"></span>
+                            <span class="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-1 rounded-lg" x-text="getPartialCount() + ' Partial'"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions Grid -->
+            <div class="space-y-4">
+                <h3 class="text-lg font-bold tracking-tight text-slate-900 px-2">Quick Actions</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <button @click="activeTab = 'create-invoice'; resetInvoiceForm()" class="p-4 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-2xl shadow hover:shadow-lg transition-all text-left flex flex-col justify-between h-32 group">
+                        <svg class="w-8 h-8 opacity-90 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-2-2v4m-3-6h8.414a1 1 0 00.707-.293l5.414-5.414a1 1 0 00.293-.707V19a2 2 0 01-2 2z"/></svg>
+                        <div>
+                            <p class="text-xs font-medium opacity-85">New Bill</p>
+                            <h4 class="font-bold text-base md:text-lg leading-tight">Create Invoice</h4>
+                        </div>
+                    </button>
+                    
+                    <button @click="openProductModal()" class="p-4 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-2xl shadow hover:shadow-lg transition-all text-left flex flex-col justify-between h-32 group">
+                        <svg class="w-8 h-8 opacity-90 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                        <div>
+                            <p class="text-xs font-medium opacity-85">Catalog</p>
+                            <h4 class="font-bold text-base md:text-lg leading-tight">Add Product</h4>
+                        </div>
+                    </button>
+
+                    <button @click="openCustomerModal()" class="p-4 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl shadow hover:shadow-lg transition-all text-left flex flex-col justify-between h-32 group">
+                        <svg class="w-8 h-8 opacity-90 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                        <div>
+                            <p class="text-xs font-medium opacity-85">Contacts</p>
+                            <h4 class="font-bold text-base md:text-lg leading-tight">Add Customer</h4>
+                        </div>
+                    </button>
+
+                    <button @click="seedDemoData()" class="p-4 bg-gradient-to-br from-slate-700 to-slate-800 text-white rounded-2xl shadow hover:shadow-lg transition-all text-left flex flex-col justify-between h-32 group">
+                        <svg class="w-8 h-8 opacity-90 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5"/></svg>
+                        <div>
+                            <p class="text-xs font-medium opacity-85">Simulator</p>
+                            <h4 class="font-bold text-base md:text-lg leading-tight">Reset Data</h4>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Double Column: Invoices & Customer Leaderboard -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Recent Invoices Table (Span 2) -->
+                <div class="lg:col-span-2 space-y-4">
+                    <div class="flex items-center justify-between px-2">
+                        <h3 class="text-lg font-bold text-slate-900">Recent Invoices</h3>
+                        <button @click="activeTab = 'invoices'; statusFilter = 'All'" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 px-3 py-1.5 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">
+                            View All Invoices
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/50 overflow-hidden">
+                        <div x-show="invoices.length === 0" class="p-12 text-center flex flex-col items-center">
+                            <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-4">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            </div>
+                            <h4 class="text-slate-900 font-bold">No Invoices Found</h4>
+                            <p class="text-slate-400 text-sm mt-1">Get started by creating or importing bills.</p>
+                        </div>
+
+                        <div x-show="invoices.length > 0" class="divide-y divide-slate-50">
+                            <template x-for="(inv, index) in getRecentInvoices()" :key="inv.id || index">
+                                <div @click="viewInvoiceDetails(inv)" class="flex items-center justify-between p-5 hover:bg-slate-50 transition-all cursor-pointer group">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-xs font-black text-indigo-600 group-hover:scale-110 transition-transform shadow-sm" x-text="'#' + inv.id"></div>
+                                        <div>
+                                            <p class="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors" x-text="inv.customer || 'Cash Customer'"></p>
+                                            <div class="flex items-center gap-2 mt-0.5 text-xs text-slate-400">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                                <span x-text="formatDate(inv.date)"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-base font-black text-slate-950" x-text="'₹' + formatIndianRupee(inv.total)"></p>
+                                        <span :class="getStatusClass(inv.status)" class="inline-flex px-2 py-0.5 text-[9px] font-extrabold rounded-md mt-1 uppercase tracking-wider" x-text="inv.status"></span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer Leaderboard -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-bold tracking-tight text-slate-900 px-2">Top Customers</h3>
+                    <div class="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/50 p-6">
+                        <div x-show="getTopCustomers().length === 0" class="text-center text-slate-400 text-sm py-8">
+                            No billing transactions yet.
+                        </div>
+                        <div class="space-y-4">
+                            <template x-for="(cust, i) in getTopCustomers()" :key="cust.name || i">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-black text-slate-600" x-text="cust.name.substring(0, 1).toUpperCase()"></div>
+                                        <div>
+                                            <p class="text-sm font-bold text-slate-900 leading-none" x-text="cust.name"></p>
+                                            <p class="text-[10px] text-slate-400 mt-1" x-text="cust.bills + ' Bill(s)'"></p>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm font-black text-slate-900" x-text="'₹' + formatIndianRupee(cust.total)"></p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 2. INVOICES VIEW ==================== -->
+        <div x-show="activeTab === 'invoices'" x-transition class="space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-900 tracking-tight font-outfit">Invoices Directory</h2>
+                    <p class="text-slate-400 text-sm">Search, filter, delete or print invoices and manage dynamic customer payments.</p>
+                </div>
+                <button @click="activeTab = 'create-invoice'; resetInvoiceForm()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    Create Bill
+                </button>
+            </div>
+
+            <!-- Search, Status Tabs -->
+            <div class="bg-white p-4 rounded-3xl border border-slate-100 shadow-md space-y-4">
+                <div class="relative">
+                    <svg class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <input type="text" x-model="searchQuery" placeholder="Search customer, invoice ID..." class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 text-sm font-medium outline-none focus:border-indigo-500 transition-all focus:ring-2 focus:ring-indigo-100">
+                </div>
+
+                <div class="flex gap-2 border-b border-slate-100 pb-2 overflow-x-auto no-scrollbar">
+                    <template x-for="filter in ['All', 'Paid', 'Partial', 'Pending']">
+                        <button @click="statusFilter = filter" :class="statusFilter === filter ? 'border-indigo-600 text-indigo-600 font-bold' : 'border-transparent text-slate-400 hover:text-slate-600'" class="px-4 py-2 border-b-2 text-sm font-medium transition-all" x-text="filter"></button>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Invoice Grid Layout -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <template x-for="(inv, index) in getFilteredInvoices()" :key="inv.id || index">
+                    <div @click="viewInvoiceDetails(inv)" class="bg-white rounded-3xl border border-slate-100 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer p-6 flex flex-col justify-between relative overflow-hidden group">
+                        <div class="absolute top-0 left-0 w-2.5 h-full bg-indigo-500" :class="{'bg-emerald-500': inv.status==='Paid', 'bg-amber-500': inv.status==='Pending', 'bg-blue-500': inv.status==='Partial'}"></div>
+                        
+                        <div class="pl-3 space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md" x-text="'#' + inv.id"></span>
+                                <span :class="getStatusClass(inv.status)" class="px-2 py-0.5 text-[9px] font-extrabold rounded-md uppercase tracking-wider" x-text="inv.status"></span>
+                            </div>
+
+                            <div>
+                                <h4 class="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-all" x-text="inv.customer || 'Cash Customer'"></h4>
+                                <div class="flex items-center gap-2 text-xs text-slate-400 mt-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                    <span x-text="formatDate(inv.date)"></span>
+                                </div>
+                            </div>
+
+                            <div class="border-t border-slate-100 pt-4 flex items-center justify-between">
+                                <div>
+                                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Sales</p>
+                                    <p class="text-base font-black text-slate-900" x-text="'₹' + formatIndianRupee(inv.total)"></p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Balance Due</p>
+                                    <p class="text-sm font-black text-rose-500" x-text="'₹' + formatIndianRupee(inv.total - (inv.paidAmount || 0))"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            
+            <!-- Empty state for Invoices -->
+            <div x-show="getFilteredInvoices().length === 0" class="p-12 text-center flex flex-col items-center bg-white rounded-3xl border border-slate-100 shadow-md">
+                <svg class="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <h4 class="text-slate-900 font-bold mt-4">No matching invoices found</h4>
+                <p class="text-slate-400 text-sm mt-1">Try tweaking your search keywords or filters.</p>
+            </div>
+        </div>
+
+        <!-- ==================== 3. CREATE INVOICE VIEW ==================== -->
+        <div x-show="activeTab === 'create-invoice'" x-transition class="space-y-6">
+            <div class="flex items-center justify-between">
+                <button @click="activeTab = 'dashboard'" class="flex items-center gap-2 text-slate-400 hover:text-slate-800 transition-colors font-medium text-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    Back to Dashboard
+                </button>
+            </div>
+
+            <!-- Invoice Creator Paper Sheet -->
+            <div class="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
+                <!-- Creator Header -->
+                <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">New Bill Generation</h2>
+                        <p class="text-slate-400 text-xs mt-1">Enter complete invoice credentials and add dynamic catalog products.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button @click="saveInvoice()" class="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-all shadow-md">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                            Save Invoice
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Creator Form -->
+                <div class="p-6 md:p-8 space-y-8">
+                    <!-- Client Pick & Date Picker -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Dropdown Client Selection -->
+                        <div class="md:col-span-2 relative" x-data="{ open: false, search: '' }">
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Billing Customer</label>
+                            
+                            <!-- Display Area -->
+                            <div @click="open = !open" :class="open ? 'border-indigo-600 ring-2 ring-indigo-50' : 'border-slate-200'" class="w-full px-4 py-3 bg-white border rounded-xl cursor-pointer flex items-center justify-between text-base transition-all">
+                                <span :class="newInvoice.customer ? 'text-slate-950 font-black' : 'text-slate-400'" x-text="newInvoice.customer || 'Select a customer...'"></span>
+                                <svg class="w-5 h-5 text-slate-400 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </div>
+
+                            <!-- List Dropdown Container -->
+                            <div x-show="open" @click.away="open = false" class="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl z-30 overflow-hidden">
+                                <div class="p-3 border-b border-slate-50 bg-slate-50/50">
+                                    <input type="text" x-model="search" placeholder="Search contacts..." class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-500">
+                                </div>
+                                <div class="max-h-60 overflow-y-auto">
+                                    <div @click="newInvoice.customer = 'Cash Sale'; open = false; search = ''" class="px-4 py-3 cursor-pointer hover:bg-slate-50 border-b border-slate-50 font-bold text-slate-700">Cash Customer (Default)</div>
+                                    <template x-for="(c, index) in customers.filter(c => c.name.toLowerCase().includes(search.toLowerCase()))" :key="c.id || index">
+                                        <div @click="newInvoice.customer = c.name; open = false; search = ''" class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-slate-50 border-b border-slate-50">
+                                            <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-600" x-text="c.name.substring(0, 1).toUpperCase()"></div>
+                                            <div>
+                                                <p class="text-sm font-semibold text-slate-900" x-text="c.name"></p>
+                                                <p class="text-xs text-slate-400" x-text="c.phone"></p>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                                <div x-show="search && !customers.some(c => c.name.toLowerCase() === search.toLowerCase())"
+                                     @click="addCustomerInline(search); newInvoice.customer = search; open = false; search = ''"
+                                     class="px-4 py-3 border-t border-slate-100 text-sm text-indigo-600 font-bold hover:bg-indigo-50 cursor-pointer flex items-center gap-1">
+                                     + Quick Create Customer "<span x-text="search"></span>"
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Billing Date</label>
+                            <input type="date" x-model="newInvoice.date" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-indigo-500 outline-none text-base font-semibold text-slate-900">
+                        </div>
+                    </div>
+
+                    <!-- Items Section -->
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">Line Items</label>
+                            <div class="flex gap-2">
+                                <button @click="openProductPickerForInvoice()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 border border-indigo-200 rounded-lg px-3 py-1.5 hover:bg-indigo-50 transition-colors flex items-center gap-1">
+                                    Browse Catalog
+                                </button>
+                                <button @click="addInvoiceItemRow()" class="text-xs font-bold text-white bg-slate-950 rounded-lg px-3 py-1.5 hover:bg-slate-800 transition-colors flex items-center gap-1 shadow-sm">
+                                    + Add Item Row
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Table UI -->
+                        <div class="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                            <th class="px-4 py-3 w-12 text-center">#</th>
+                                            <th class="px-4 py-3 min-w-[200px]">Description</th>
+                                            <th class="px-2 py-3 w-24 text-center">Qty</th>
+                                            <th class="px-2 py-3 w-28 text-center">Unit</th>
+                                            <th class="px-4 py-3 w-32 text-right">Rate</th>
+                                            <th class="px-4 py-3 w-36 text-right">Total</th>
+                                            <th class="w-12 text-center"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 bg-white">
+                                        <template x-for="(item, index) in newInvoice.items" :key="index">
+                                            <tr class="hover:bg-slate-50/50 transition-colors">
+                                                <td class="px-4 py-3 text-center text-sm font-semibold text-slate-400" x-text="index + 1"></td>
+                                                <td class="px-4 py-2 relative" x-data="{ open: false, search: '' }">
+                                                    <div class="flex items-center gap-1">
+                                                        <input type="text" x-model="item.description" placeholder="Item description..." class="w-full bg-transparent border-none text-sm font-semibold text-slate-900 outline-none p-0 focus:ring-0">
+                                                        <!-- Inline Quick Catalog trigger -->
+                                                        <button @click="openProductPickerForInvoiceRow(index)" class="text-indigo-500 hover:text-indigo-700 p-1" title="Pick from Catalog">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td class="px-2 py-2">
+                                                    <input type="number" x-model.number="item.quantity" class="w-full bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 text-center font-bold py-1.5 outline-none focus:border-slate-400">
+                                                </td>
+                                                <td class="px-2 py-2">
+                                                    <select x-model="item.unit" class="w-full bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold py-1.5 text-center cursor-pointer outline-none">
+                                                        <option value="Nos.">Nos.</option>
+                                                        <option value="Box">Box</option>
+                                                        <option value="Kg">Kg</option>
+                                                        <option value="Mtr">Mtr</option>
+                                                        <option value="Pkt">Pkt</option>
+                                                    </select>
+                                                </td>
+                                                <td class="px-2 py-2">
+                                                    <div class="relative">
+                                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400">₹</span>
+                                                        <input type="number" x-model.number="item.price" class="w-full bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 text-right font-bold py-1.5 pl-6 pr-3 outline-none focus:border-slate-400">
+                                                    </div>
+                                                </td>
+                                                <td class="px-4 py-3 text-right">
+                                                    <span class="text-sm font-black text-slate-900" x-text="'₹' + formatIndianRupee((item.quantity * item.price).toFixed(2))"></span>
+                                                </td>
+                                                <td class="px-2 py-3 text-center">
+                                                    <button @click="removeInvoiceItemRow(index)" class="p-1.5 text-slate-300 hover:text-rose-600 rounded-lg transition-colors">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Total Section -->
+                            <div class="bg-slate-50/50 border-t border-slate-200 p-5 flex justify-end">
+                                <div class="w-64 space-y-3">
+                                    <div class="flex justify-between text-sm items-center">
+                                        <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Subtotal</span>
+                                        <span class="font-bold text-slate-700" x-text="'₹' + formatIndianRupee(calculateSubtotal().toFixed(2))"></span>
+                                    </div>
+                                    <div class="border-t border-slate-200 pt-3 flex justify-between items-end">
+                                        <span class="text-sm font-black text-slate-900 uppercase">Grand Total</span>
+                                        <span class="text-2xl font-black text-slate-900 font-outfit leading-none" x-text="'₹' + formatIndianRupee(calculateSubtotal().toFixed(2))"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 4. PRODUCTS VIEW ==================== -->
+        <div x-show="activeTab === 'products'" x-transition class="space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-900 tracking-tight font-outfit">Product Inventory</h2>
+                    <p class="text-slate-400 text-sm">Add bilingual item catalogs, modify prices, update stocks and trace units.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm px-4 py-2.5 rounded-xl cursor-pointer transition-all flex items-center gap-2 border border-slate-200">
+                        <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <span>Import</span>
+                        <input type="file" accept=".csv" @change="importProductsCSV($event)" class="hidden" />
+                    </label>
+                    <button @click="downloadSampleCSV('products')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 border border-slate-200" title="Download Sample CSV">
+                        <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        <span>Sample</span>
+                    </button>
+                    <button @click="openProductModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        New Product
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search bar -->
+            <div class="bg-white p-4 rounded-3xl border border-slate-100 shadow-md">
+                <div class="relative">
+                    <svg class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <input type="text" x-model="productSearch" placeholder="Search catalog name (English or Gujarati)..." class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 text-sm font-medium outline-none focus:border-indigo-500 transition-all focus:ring-2 focus:ring-indigo-100">
+                </div>
+            </div>
+
+            <!-- Product Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <template x-for="(p, index) in getFilteredProducts()" :key="p.id || index">
+                    <div class="bg-white rounded-3xl border border-slate-100 shadow-md hover:shadow-xl transition-all p-6 flex flex-col justify-between relative group">
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest" x-text="p.id"></span>
+                                <div class="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button @click="openProductModal(p)" class="p-1 text-slate-400 hover:text-indigo-600 bg-slate-50 rounded-lg">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                    </button>
+                                    <button @click="deleteProductItem(p.id)" class="p-1 text-slate-400 hover:text-rose-600 bg-slate-50 rounded-lg">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 class="text-lg font-bold text-slate-900 leading-tight" x-text="p.name"></h4>
+                                <h5 class="text-sm font-semibold text-slate-400 Gujarati tracking-wide mt-1" x-text="p.nameGujarati || 'No Gujarati Name'"></h5>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+                                <div>
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Rate (Price)</span>
+                                    <p class="text-lg font-black text-slate-900 font-outfit leading-none mt-1" x-text="'₹' + formatIndianRupee(p.salePrice || p.price)"></p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Stock Level</span>
+                                    <p class="text-sm font-bold mt-1" :class="p.stock > 10 ? 'text-slate-900' : 'text-rose-600'" x-text="p.stock + ' ' + (p.unit || 'Nos.')"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            
+            <div x-show="getFilteredProducts().length === 0" class="p-12 text-center flex flex-col items-center bg-white rounded-3xl border border-slate-100 shadow-md">
+                <svg class="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                <h4 class="text-slate-900 font-bold mt-4">No matching products found</h4>
+                <p class="text-slate-400 text-sm mt-1">Add a new item to populate the stock.</p>
+            </div>
+        </div>
+
+        <!-- ==================== 5. CUSTOMERS VIEW ==================== -->
+        <div x-show="activeTab === 'customers'" x-transition class="space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-900 tracking-tight font-outfit">Customer Directory</h2>
+                    <p class="text-slate-400 text-sm">Organize client logs, contact directory, and record physical invoice addresses.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <label class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm px-4 py-2.5 rounded-xl cursor-pointer transition-all flex items-center gap-2 border border-slate-200">
+                        <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <span>Import</span>
+                        <input type="file" accept=".csv" @change="importCustomersCSV($event)" class="hidden" />
+                    </label>
+                    <button @click="downloadSampleCSV('customers')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 border border-slate-200" title="Download Sample CSV">
+                        <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        <span>Sample</span>
+                    </button>
+                    <template x-if="customers.length > 0">
+                        <button @click="if (confirm('⚠️ WARNING: Are you absolutely sure you want to delete ALL customers? This action is irreversible.')) { customers = []; saveToStorage('customers', []); }" class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 shadow-sm" title="Delete All Customers">
+                            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            <span>Delete All</span>
+                        </button>
+                    </template>
+                    <button @click="openCustomerModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        New Customer
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search bar -->
+            <div class="bg-white p-4 rounded-3xl border border-slate-100 shadow-md">
+                <div class="relative">
+                    <svg class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <input type="text" x-model="customerSearch" placeholder="Search customer name or phone..." class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 text-sm font-medium outline-none focus:border-indigo-500 transition-all focus:ring-2 focus:ring-indigo-100">
+                </div>
+            </div>
+
+            <!-- Customer Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <template x-for="(c, index) in getFilteredCustomers()" :key="c.id || index">
+                    <div class="bg-white rounded-3xl border border-slate-100 shadow-md p-6 flex flex-col justify-between relative group hover:shadow-xl transition-all">
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-600 text-sm" x-text="c.name.substring(0, 1).toUpperCase()"></div>
+                                <div class="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button @click="openCustomerModal(c)" class="p-1 text-slate-400 hover:text-indigo-600 bg-slate-50 rounded-lg">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                    </button>
+                                    <button @click="deleteCustomerItem(c.id)" class="p-1 text-slate-400 hover:text-rose-600 bg-slate-50 rounded-lg">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 class="text-lg font-bold text-slate-900" x-text="c.name"></h4>
+                                <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-1" x-text="c.id"></p>
+                            </div>
+
+                            <div class="space-y-2 border-t border-slate-100 pt-4 text-xs font-semibold text-slate-500">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                                    <span x-text="c.phone || 'N/A'"></span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                    <span class="truncate" x-text="c.email || 'N/A'"></span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-slate-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                    <span class="leading-normal" x-text="c.address || 'No registered address'"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            
+            <div x-show="getFilteredCustomers().length === 0" class="p-12 text-center flex flex-col items-center bg-white rounded-3xl border border-slate-100 shadow-md">
+                <svg class="w-12 h-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                <h4 class="text-slate-900 font-bold mt-4">No matching customers found</h4>
+                <p class="text-slate-400 text-sm mt-1">Add a new buyer profile to get started.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ==================== MOBILE NAVIGATION BAR ==================== -->
+    <nav class="no-print md:hidden fixed bottom-0 left-0 right-0 glass border-t border-slate-200 flex items-center justify-around py-3 px-4 z-40 shadow-xl">
+        <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'text-indigo-600 font-bold scale-105' : 'text-slate-400 hover:text-slate-600'" class="flex flex-col items-center gap-1 transition-all">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"/></svg>
+            <span class="text-[10px]">Dashboard</span>
+        </button>
+        <button @click="activeTab = 'invoices'" :class="activeTab === 'invoices' ? 'text-indigo-600 font-bold scale-105' : 'text-slate-400 hover:text-slate-600'" class="flex flex-col items-center gap-1 transition-all">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span class="text-[10px]">Bills</span>
+        </button>
+        <button @click="activeTab = 'create-invoice'; resetInvoiceForm()" :class="activeTab === 'create-invoice' ? 'text-indigo-600 font-bold scale-105' : 'text-slate-400 hover:text-slate-600'" class="flex flex-col items-center gap-1 transition-all">
+            <svg class="w-6 h-6 text-indigo-600 bg-indigo-50 border border-indigo-200 p-1.5 rounded-full shadow-inner" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/></svg>
+            <span class="text-[10px] font-bold">New</span>
+        </button>
+        <button @click="activeTab = 'products'" :class="activeTab === 'products' ? 'text-indigo-600 font-bold scale-105' : 'text-slate-400 hover:text-slate-600'" class="flex flex-col items-center gap-1 transition-all">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            <span class="text-[10px]">Items</span>
+        </button>
+        <button @click="activeTab = 'customers'" :class="activeTab === 'customers' ? 'text-indigo-600 font-bold scale-105' : 'text-slate-400 hover:text-slate-600'" class="flex flex-col items-center gap-1 transition-all">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span class="text-[10px]">Buyers</span>
+        </button>
+    </nav>
+
+
+    <!-- ========================================== -->
+    <!-- ================ MODALS ================== -->
+    <!-- ========================================== -->
+
+    <!-- ==================== A. INVOICE DETAIL VIEW MODAL ==================== -->
+    <div x-show="selectedInvoice !== null" class="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-transition x-cloak>
+        <div class="bg-white w-full max-w-4xl rounded-3xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95" @click.away="selectedInvoice = null">
+            <!-- Modal Navigation Header -->
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between no-print">
+                <div class="flex items-center gap-2">
+                    <span class="text-sm font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg" x-text="'Invoice #' + selectedInvoice?.id"></span>
+                    <span :class="getStatusClass(selectedInvoice?.status)" class="px-2 py-0.5 text-[10px] font-extrabold rounded-md uppercase tracking-wider" x-text="selectedInvoice?.status"></span>
+                </div>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <button @click="printInvoice()" class="px-3 py-1.5 border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs rounded-xl flex items-center gap-1 shadow-sm">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                        Print A4
+                    </button>
+                    <button @click="printThermalInvoice()" class="px-3 py-1.5 bg-purple-50 border border-purple-200 text-purple-700 hover:bg-purple-100 font-bold text-xs rounded-xl flex items-center gap-1 shadow-sm">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                        Print Thermal
+                    </button>
+                    <button @click="downloadInvoicePDF()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-md">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        Save PDF
+                    </button>
+                    <button @click="downloadThermalPDF()" class="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-md">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        Thermal PDF
+                    </button>
+                    <button @click="openPaymentModalForSelected()" x-show="selectedInvoice?.status !== 'Paid'" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-md">
+                        Record Payment
+                    </button>
+                    <button @click="deleteInvoiceItem(selectedInvoice?.id)" class="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl" title="Delete Bill">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                    <button @click="selectedInvoice = null" class="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 ml-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- PDF PRINT AREA -->
+            <div id="invoice-print-area" class="flex-1 overflow-y-auto p-6 md:p-12 print-card">
+                <!-- Invoice Billing Header -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-100 pb-8 gap-6">
+                    <h1 class="text-3xl font-black font-outfit text-slate-900 tracking-wider uppercase">Bill of Supply</h1>
+                    <div class="text-left md:text-right">
+                        <div class="mt-4 text-xs font-semibold text-slate-500 space-y-1">
+                            <p>Invoice No: <span class="font-black text-slate-900" x-text="'#' + selectedInvoice?.id"></span></p>
+                            <p>Date: <span class="font-black text-slate-900" x-text="formatDate(selectedInvoice?.date)"></span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Buyer / Client Details Address Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 py-8 border-b border-slate-100">
+                    <div>
+                        <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Billed To</p>
+                        <h4 class="text-base font-black text-slate-900" x-text="selectedInvoice?.customer || 'Cash Customer'"></h4>
+                        <!-- Fetch dynamic address details if customer exists in catalog -->
+                        <div class="text-xs text-slate-400 font-semibold mt-2 space-y-1" x-data="{ c: getCustomerDetails(selectedInvoice?.customer) }">
+                            <p x-show="c?.phone" x-text="'Phone: ' + c?.phone"></p>
+                            <p x-show="c?.email" x-text="'Email: ' + c?.email"></p>
+                            <p x-show="c?.address" x-text="'Address: ' + c?.address"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Products Table -->
+                <div class="py-8">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                <th class="px-4 py-3 w-12 text-center">#</th>
+                                <th class="px-4 py-3">Description</th>
+                                <th class="px-2 py-3 w-20 text-center">Qty</th>
+                                <th class="px-2 py-3 w-20 text-center">Unit</th>
+                                <th class="px-4 py-3 w-28 text-right">Rate</th>
+                                <th class="px-4 py-3 w-32 text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
+                            <template x-for="(item, i) in selectedInvoice?.items" :key="i">
+                                <tr>
+                                    <td class="px-4 py-4 text-center text-slate-400 font-bold" x-text="i + 1"></td>
+                                    <td class="px-4 py-4 text-slate-900 font-extrabold" x-text="item.description"></td>
+                                    <td class="px-2 py-4 text-center" x-text="item.quantity"></td>
+                                    <td class="px-2 py-4 text-center" x-text="item.unit || 'Nos.'"></td>
+                                    <td class="px-4 py-4 text-right" x-text="'₹' + formatIndianRupee(item.price)"></td>
+                                    <td class="px-4 py-4 text-right font-black text-slate-900" x-text="'₹' + formatIndianRupee((item.quantity * item.price).toFixed(2))"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Bottom Summary Box -->
+                <div class="border-t border-slate-100 pt-8 flex flex-col md:flex-row justify-between items-start gap-8">
+                    <!-- Payments History Logs -->
+                    <div class="w-full md:w-1/2 space-y-4">
+                        <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Payment Ledger Transactions</p>
+                        
+                        <div x-show="!selectedInvoice?.payments || selectedInvoice?.payments.length === 0" class="text-xs font-semibold text-slate-400 italic">
+                            No payment ledger recorded. Bill is completely outstanding.
+                        </div>
+                        
+                        <div x-show="selectedInvoice?.payments?.length > 0" class="bg-slate-50 border border-slate-100 rounded-2xl p-4 divide-y divide-slate-200/50 space-y-2">
+                            <template x-for="(pay, index) in selectedInvoice?.payments" :key="pay.id || index">
+                                <div class="flex items-center justify-between text-xs font-semibold pt-2 first:pt-0">
+                                    <div>
+                                        <p class="text-slate-800" x-text="pay.method + ' payment'"></p>
+                                        <p class="text-[10px] text-slate-400" x-text="formatDate(pay.date)"></p>
+                                    </div>
+                                    <div class="text-right flex items-center gap-2">
+                                        <span class="text-slate-900 font-black" x-text="'₹' + formatIndianRupee(pay.amount)"></span>
+                                        <button @click="deletePaymentItem(selectedInvoice.id, pay.id)" class="no-print text-slate-300 hover:text-rose-600 transition-colors">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Balance sheet totals -->
+                    <div class="w-full md:w-64 space-y-3">
+                        <div class="flex justify-between text-xs font-semibold">
+                            <span class="text-slate-400 uppercase tracking-widest text-[10px]">Subtotal</span>
+                            <span class="text-slate-700 font-black" x-text="'₹' + formatIndianRupee((selectedInvoice?.subtotal || 0).toFixed(2))"></span>
+                        </div>
+                        <div class="flex justify-between text-xs font-semibold">
+                            <span class="text-slate-400 uppercase tracking-widest text-[10px]">Total Paid</span>
+                            <span class="text-emerald-600 font-black" x-text="'₹' + formatIndianRupee((selectedInvoice?.paidAmount || 0).toFixed(2))"></span>
+                        </div>
+                        <div class="border-t border-slate-100 pt-3 flex justify-between items-end">
+                            <span class="text-xs font-black text-slate-900 uppercase">Balance Outstanding</span>
+                            <span class="text-xl font-black text-slate-950 font-outfit leading-none" :class="{'text-rose-600': selectedInvoice?.total - selectedInvoice?.paidAmount > 0}" x-text="'₹' + formatIndianRupee((selectedInvoice?.total - (selectedInvoice?.paidAmount || 0)).toFixed(2))"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Terms and Sign Footer -->
+                <div class="border-t border-slate-100 mt-12 pt-8 flex justify-between items-end text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                    <div>
+                        <p>Thank you for doing business with us!</p>
+                        <p class="mt-1">Declaration: Goods once sold will not be taken back.</p>
+                    </div>
+                    <div class="text-center w-40 border-t border-slate-200 pt-4">
+                        <p class="text-slate-900 font-black font-outfit">Authorised Signature</p>
+                        <p class="mt-1">For Shakti Sales Agency</p>
+                    </div>
+                </div>
+
+                <!-- HIDDEN THERMAL RECEIPT (D-Mart Style) -->
+                <div class="thermal-receipt">
+                    <div class="text-center font-black text-base uppercase tracking-tight">BILL OF SUPPLY</div>
+                    <div class="thermal-dotted"></div>
+                    
+                    <div class="text-[9px] space-y-0.5 font-semibold">
+                        <div class="flex justify-between">
+                            <span x-text="'INVOICE NO: #' + selectedInvoice?.id"></span>
+                            <span x-text="'DATE: ' + formatDate(selectedInvoice?.date)"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>OPERATOR: Admin</span>
+                            <span x-text="'TIME: ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })"></span>
+                        </div>
+                        <div>
+                            <span x-text="'CUSTOMER: ' + selectedInvoice?.customer"></span>
+                        </div>
+                        <template x-if="selectedInvoice?.customer">
+                            <div x-data="{ c: getCustomerDetails(selectedInvoice.customer) }">
+                                <template x-if="c">
+                                    <div class="text-[8px] leading-tight text-slate-700">
+                                        <p x-show="c.phone" x-text="'CONTACT: +91 ' + c.phone"></p>
+                                        <p x-show="c.address" class="uppercase" x-text="'ADDR: ' + c.address"></p>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <div class="thermal-dotted"></div>
+                    <div class="text-center text-[9px] font-black uppercase py-0.5">--- retail sales invoice ---</div>
+                    <div class="thermal-dotted"></div>
+
+                    <!-- Table Items -->
+                    <div class="space-y-2.5 my-2">
+                        <template x-for="(item, i) in selectedInvoice?.items" :key="i">
+                            <div class="text-[9px] font-semibold leading-tight">
+                                <div class="font-bold">
+                                    <span x-text="(i + 1) + '. ' + item.description"></span>
+                                    <span x-data="{ p: products.find(prod => prod.name.toLowerCase() === item.description.toLowerCase()) }">
+                                        <template x-if="p && p.nameGujarati">
+                                            <span class="font-medium text-slate-700 font-sans ml-1" x-text="'(' + p.nameGujarati + ')'"></span>
+                                        </template>
+                                    </span>
+                                </div>
+                                <div class="flex justify-between pl-3 mt-0.5">
+                                    <span x-text="Number(item.quantity).toFixed(2) + ' ' + (item.unit || 'Nos.') + '  x  ₹' + Number(item.price).toFixed(2)"></span>
+                                    <span class="font-bold" x-text="'₹' + formatIndianRupee((item.quantity * item.price).toFixed(2))"></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <div class="thermal-dotted"></div>
+                    
+                    <!-- Summary Totals -->
+                    <div class="text-[9px] space-y-1 font-semibold">
+                        <div class="flex justify-between">
+                            <span x-text="'TOTAL ITEMS: ' + (selectedInvoice?.items?.length || 0)"></span>
+                            <span x-text="'TOTAL QTY: ' + (selectedInvoice?.items?.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0) || 0).toFixed(2)"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>SUB TOTAL</span>
+                            <span x-text="'₹' + formatIndianRupee((selectedInvoice?.total || 0).toFixed(2))"></span>
+                        </div>
+
+                        <div class="flex justify-between">
+                            <span>ROUND OFF</span>
+                            <span>₹0.00</span>
+                        </div>
+                        <div class="thermal-dotted"></div>
+                        <div class="flex justify-between font-black text-xs py-0.5 uppercase">
+                            <span>net amount</span>
+                            <span x-text="'₹' + formatIndianRupee((selectedInvoice?.total || 0).toFixed(2))"></span>
+                        </div>
+                        <div class="thermal-dotted"></div>
+                        <div class="flex justify-between font-bold text-emerald-700">
+                            <span>TOTAL PAID</span>
+                            <span x-text="'₹' + formatIndianRupee((selectedInvoice?.paidAmount || 0).toFixed(2))"></span>
+                        </div>
+                        <div class="flex justify-between font-bold text-rose-700">
+                            <span>OUTSTANDING</span>
+                            <span x-text="'₹' + formatIndianRupee(((selectedInvoice?.total || 0) - (selectedInvoice?.paidAmount || 0)).toFixed(2))"></span>
+                        </div>
+                        <template x-if="selectedInvoice?.payments && selectedInvoice?.payments.length > 0">
+                            <div class="text-[8px] pl-2 text-slate-700 space-y-0.5 mt-1 border-l-2 border-slate-200">
+                                <p class="font-bold uppercase text-[7px] text-slate-400">Ledger Payments:</p>
+                                <template x-for="(p, idx) in selectedInvoice.payments" :key="idx">
+                                    <p x-text="'• ' + formatDate(p.date) + ' - ' + p.method + ': ₹' + Number(p.amount).toFixed(2)"></p>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <div class="thermal-double-dotted"></div>
+                    
+                    <div class="text-center text-[9px] font-bold space-y-1">
+                        <p class="uppercase leading-none tracking-tighter">*** save water, save trees ***</p>
+                        <p class="uppercase tracking-wide">Thank You! visit again!</p>
+                        <p class="font-sans leading-relaxed text-[10px]">આભાર! ફરી પધારો!</p>
+                    </div>
+                    
+                    <!-- Simulated Barcode -->
+                    <div class="flex flex-col items-center mt-3 mb-1">
+                        <div class="text-[12px] font-mono tracking-[-1px] font-light leading-none select-none text-black select-none">
+                            || | | |||| | ||| | ||| || ||| || ||| | || |||| | |||
+                        </div>
+                        <div class="text-[8px] font-mono mt-0.5 tracking-wider" x-text="'#' + selectedInvoice?.id"></div>
+                    </div>
+                    <div class="thermal-dotted"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== B. RECORD PAYMENT MODAL ==================== -->
+    <div x-show="showPaymentModal" class="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in" x-cloak>
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 space-y-6" @click.away="showPaymentModal = false">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-bold text-slate-900">Record Invoice Payment</h3>
+                <button @click="showPaymentModal = false" class="text-slate-400 hover:text-slate-600 p-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Payment Amount (₹)</label>
+                    <input type="number" x-model.number="paymentForm.amount" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-base font-bold text-slate-900 focus:border-indigo-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Transaction Date</label>
+                    <input type="date" x-model="paymentForm.date" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-semibold text-slate-900 focus:border-indigo-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Payment Method</label>
+                    <select x-model="paymentForm.method" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-semibold text-slate-900 focus:border-indigo-500 outline-none cursor-pointer">
+                        <option value="Cash">Cash</option>
+                        <option value="UPI / PhonePe">UPI / GPay / PhonePe</option>
+                        <option value="Bank Transfer">Bank Transfer (NEFT)</option>
+                        <option value="Cheque">Cheque</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Reference Notes (Optional)</label>
+                    <input type="text" x-model="paymentForm.note" placeholder="Txn Ref No. or memo..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 focus:border-indigo-500 outline-none">
+                </div>
+            </div>
+
+            <button @click="saveInvoicePayment()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-2xl shadow-md">
+                Confirm & Sync Ledger
+            </button>
+        </div>
+    </div>
+
+
+    <!-- ==================== C. PRODUCT CREATE/EDIT MODAL ==================== -->
+    <div x-show="showProductModal" class="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 space-y-6" @click.away="showProductModal = false">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-bold text-slate-900" x-text="editingProduct ? 'Edit Catalog Product' : 'Add New Catalog Product'"></h3>
+                <button @click="showProductModal = false" class="text-slate-400 hover:text-slate-600 p-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Product ID (Unique)</label>
+                    <input type="text" x-model="productForm.id" :disabled="editingProduct !== null" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-indigo-500 disabled:opacity-60">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Product Title (English)</label>
+                    <input type="text" x-model="productForm.name" placeholder="e.g. Hex Bolt M12..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 focus:border-indigo-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Gujarati / Hindi Title</label>
+                    <input type="text" x-model="productForm.nameGujarati" placeholder="દા.ત. હેક્સ બોલ્ટ..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 focus:border-indigo-500 outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Rate (₹)</label>
+                        <input type="number" x-model.number="productForm.salePrice" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:border-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Inventory Stock</label>
+                        <input type="number" x-model.number="productForm.stock" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:border-indigo-500 outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Stock Unit</label>
+                    <select x-model="productForm.unit" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 cursor-pointer focus:border-indigo-500 outline-none">
+                        <option value="Nos.">Nos.</option>
+                        <option value="Box">Box</option>
+                        <option value="Kg">Kg</option>
+                        <option value="Mtr">Mtr</option>
+                        <option value="Pkt">Pkt</option>
+                    </select>
+                </div>
+            </div>
+
+            <button @click="saveProductForm()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-2xl shadow-md">
+                Confirm & Sync Catalog
+            </button>
+        </div>
+    </div>
+
+
+    <!-- ==================== D. CUSTOMER CREATE/EDIT MODAL ==================== -->
+    <div x-show="showCustomerModal" class="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 space-y-6" @click.away="showCustomerModal = false">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-bold text-slate-900" x-text="editingCustomer ? 'Edit Customer Info' : 'Add New Customer Profile'"></h3>
+                <button @click="showCustomerModal = false" class="text-slate-400 hover:text-slate-600 p-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Customer ID (Unique)</label>
+                    <input type="text" x-model="customerForm.id" :disabled="editingCustomer !== null" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-indigo-500 disabled:opacity-60">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Customer Full Name</label>
+                    <input type="text" x-model="customerForm.name" placeholder="e.g. Ramesh Patel..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 focus:border-indigo-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Phone Number</label>
+                    <input type="text" x-model="customerForm.phone" placeholder="e.g. +91 99999 88888..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 focus:border-indigo-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Email Address</label>
+                    <input type="email" x-model="customerForm.email" placeholder="e.g. customer@example.com..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 focus:border-indigo-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Billing Location Address</label>
+                    <textarea x-model="customerForm.address" placeholder="e.g. Opp. Bus Stand, Rajkot..." rows="3" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 focus:border-indigo-500 outline-none resize-none"></textarea>
+                </div>
+            </div>
+
+            <button @click="saveCustomerForm()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-2xl shadow-md">
+                Confirm & Sync Account
+            </button>
+        </div>
+    </div>
+
+
+    <!-- ==================== E. DYNAMIC PRODUCT CATALOG PICKER MODAL (FOR INVOICING) ==================== -->
+    <div x-show="showProductPicker" class="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]" @click.away="showProductPicker = false">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                <h3 class="text-lg font-bold text-slate-900">Select Product Catalog</h3>
+                <button @click="showProductPicker = false" class="text-slate-400 hover:text-slate-600 p-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            
+            <div class="px-6 py-4 border-b border-slate-50 bg-slate-50/50">
+                <input type="text" x-model="productSearch" placeholder="Search catalog inventory..." class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-indigo-500 font-semibold shadow-inner">
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-2">
+                <template x-for="(p, index) in getFilteredProducts()" :key="p.id || index">
+                    <div @click="selectProductForInvoice(p)" class="flex items-center justify-between px-4 py-3 hover:bg-slate-50 cursor-pointer rounded-xl transition-all mb-1 border border-transparent hover:border-slate-100 group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-500 font-bold flex items-center justify-center" x-text="p.name.substring(0, 1).toUpperCase()"></div>
+                            <div>
+                                <p class="text-sm font-bold text-slate-900" x-text="p.name"></p>
+                                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider" x-text="p.id + ' | Stock: ' + p.stock + ' ' + p.unit"></p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-black text-slate-700 bg-slate-100 px-2 py-1 rounded-md group-hover:bg-indigo-600 group-hover:text-white transition-all" x-text="'₹' + formatIndianRupee(p.salePrice || p.price)"></span>
+                    </div>
+                </template>
+                <div x-show="getFilteredProducts().length === 0" class="text-center text-slate-400 text-sm py-12">
+                    No matching items in stock list.
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- ============= JAVASCRIPT STATE ============ -->
+    <!-- ========================================== -->
+    <script>
+        function billingApp() {
+            return {
+                activeTab: 'dashboard',
+                
+                // Data elements loaded directly from local storage compatible with React keys
+                products: [],
+                customers: [],
+                invoices: [],
+
+                // Search inputs
+                searchQuery: '',
+                productSearch: '',
+                customerSearch: '',
+
+                // Tab filters
+                statusFilter: 'All',
+
+                // Selected invoice for detail view modal
+                selectedInvoice: null,
+
+                // Modal variables
+                showPaymentModal: false,
+                showProductModal: false,
+                showCustomerModal: false,
+                showProductPicker: false,
+                activeInvoiceRowIndex: null, // Track row index if choosing product for a row, null if adding new row
+
+                // Modal input forms
+                paymentForm: { amount: 0, date: '', method: 'Cash', note: '' },
+                editingProduct: null,
+                editingCustomer: null,
+                productForm: { id: '', name: '', nameGujarati: '', price: 0, salePrice: 0, stock: 0, unit: 'Nos.' },
+                customerForm: { id: '', name: '', email: '', phone: '', address: '' },
+
+                // Invoice creator state
+                newInvoice: {
+                    customer: '',
+                    date: '',
+                    items: [
+                        { description: '', quantity: 1, price: 0, unit: 'Nos.' }
+                    ]
+                },
+
+                initData() {
+                    // Protected try-catch initialization to avoid JSON parse crashes from empty/undefined strings
+                    try {
+                        const savedProducts = localStorage.getItem('products');
+                        if (savedProducts && savedProducts !== 'undefined') {
+                            const parsed = JSON.parse(savedProducts);
+                            if (Array.isArray(parsed) && parsed.length > 0) {
+                                // Normalize pricing defensively mapping objects
+                                this.products = parsed.filter(Boolean).map(p => {
+                                    const rawPrice = p.price !== undefined ? p.price : 0;
+                                    const parsedPrice = typeof rawPrice === 'string' ? parseFloat(rawPrice.replace(/[₹$]/g, '')) || 0 : Number(rawPrice) || 0;
+                                    const rawSalePrice = p.salePrice !== undefined ? p.salePrice : parsedPrice;
+                                    const parsedSalePrice = typeof rawSalePrice === 'string' ? parseFloat(rawSalePrice.replace(/[₹$]/g, '')) || 0 : Number(rawSalePrice) || 0;
+
+                                    return {
+                                        id: p.id || '',
+                                        name: p.name || 'Unnamed Product',
+                                        nameGujarati: p.nameGujarati || '',
+                                        price: parsedPrice,
+                                        salePrice: parsedSalePrice || parsedPrice,
+                                        stock: p.stock !== undefined ? (Number(p.stock) || 0) : 10,
+                                        unit: p.unit || 'Nos.'
+                                    };
+                                });
+                            } else {
+                                this.products = this.getDefaultProducts();
+                                this.saveToStorage('products', this.products);
+                            }
+                        } else {
+                            this.products = this.getDefaultProducts();
+                            this.saveToStorage('products', this.products);
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse products from localstorage. Using defaults.', e);
+                        this.products = this.getDefaultProducts();
+                    }
+
+                    try {
+                        const savedCustomers = localStorage.getItem('customers');
+                        if (savedCustomers && savedCustomers !== 'undefined') {
+                            const parsed = JSON.parse(savedCustomers);
+                            if (Array.isArray(parsed)) {
+                                // Auto-purge old seeded customer database (Shashwat) to ensure clean starting slate
+                                const hasLegacySeeded = parsed.some(c => c.name.toLowerCase().includes('shashwat') && c.phone === '9662086299');
+                                if (hasLegacySeeded) {
+                                    this.customers = [];
+                                    this.saveToStorage('customers', []);
+                                } else {
+                                    this.customers = parsed.filter(Boolean).map(c => ({
+                                        id: c.id || String(Date.now()),
+                                        name: c.name || 'Unnamed Customer',
+                                        email: c.email || '',
+                                        phone: c.phone || '',
+                                        address: c.address || ''
+                                    }));
+                                }
+                            } else {
+                                this.customers = this.getDefaultCustomers();
+                                this.saveToStorage('customers', this.customers);
+                            }
+                        } else {
+                            this.customers = this.getDefaultCustomers();
+                            this.saveToStorage('customers', this.customers);
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse customers from localstorage. Using defaults.', e);
+                        this.customers = this.getDefaultCustomers();
+                    }
+
+                    try {
+                        const savedInvoices = localStorage.getItem('invoices');
+                        if (savedInvoices && savedInvoices !== 'undefined') {
+                            const parsed = JSON.parse(savedInvoices);
+                            if (Array.isArray(parsed) && parsed.length > 0) {
+                                this.invoices = parsed.filter(Boolean).map(inv => {
+                                    const total = typeof inv.total === 'number' ? inv.total : (parseFloat(inv.total) || 0);
+                                    const paidAmount = typeof inv.paidAmount === 'number' ? inv.paidAmount : 0;
+                                    const payments = Array.isArray(inv.payments) ? inv.payments : [];
+                                    let status = inv.status || 'Pending';
+                                    if (paidAmount >= total && total > 0) status = 'Paid';
+                                    else if (paidAmount > 0) status = 'Partial';
+                                    else status = 'Pending';
+                                    
+                                    return {
+                                        id: inv.id || String(Date.now()),
+                                        customer: inv.customer || 'Cash Customer',
+                                        date: inv.date || new Date().toISOString().split('T')[0],
+                                        items: Array.isArray(inv.items) ? inv.items.filter(Boolean).map(item => ({
+                                            description: item.description || 'Item',
+                                            quantity: Number(item.quantity) || 0,
+                                            price: Number(item.price) || 0,
+                                            unit: item.unit || 'Nos.'
+                                        })) : [],
+                                        total,
+                                        subtotal: inv.subtotal || total,
+                                        paidAmount,
+                                        payments: payments.filter(Boolean).map(p => ({
+                                            id: p.id || String(Date.now()),
+                                            amount: Number(p.amount) || 0,
+                                            date: p.date || new Date().toISOString().split('T')[0],
+                                            method: p.method || 'Cash',
+                                            note: p.note || ''
+                                        })),
+                                        status
+                                    };
+                                });
+                            } else {
+                                this.invoices = this.getDefaultInvoices();
+                                this.saveToStorage('invoices', this.invoices);
+                            }
+                        } else {
+                            this.invoices = this.getDefaultInvoices();
+                            this.saveToStorage('invoices', this.invoices);
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse invoices from localstorage.', e);
+                        this.invoices = this.getDefaultInvoices();
+                    }
+
+                    // Check if old placeholder data is loaded in local storage, force a clean reset to defaults
+                    const hasPlaceholders = this.products.some(p => p.name === 'Standard Widget' || p.name === 'Premium Service');
+                    if (hasPlaceholders) {
+                        this.products = this.getDefaultProducts();
+                        this.customers = this.getDefaultCustomers();
+                        this.invoices = this.getDefaultInvoices();
+                        this.saveToStorage('products', this.products);
+                        this.saveToStorage('customers', this.customers);
+                        this.saveToStorage('invoices', this.invoices);
+                    }
+
+                    // Reset forms
+                    this.resetInvoiceForm();
+                },
+
+                getDefaultProducts() {
+                    return /*START_PRODUCTS*/[
+    {
+        "id": "PROD-001",
+        "name": "Khichdi",
+        "nameGujarati": "ખીચડી",
+        "price": 45,
+        "salePrice": 45,
+        "stock": 150,
+        "unit": "Packet",
+        "image": null
+    },
+    {
+        "id": "PROD-002",
+        "name": "Pasta",
+        "nameGujarati": "પાસ્તા",
+        "price": 45,
+        "salePrice": 45,
+        "stock": 150,
+        "unit": "Packet",
+        "image": null
+    },
+    {
+        "id": "PROD-003",
+        "name": "Garlic kaju",
+        "nameGujarati": "ગાર્લિક કાજુ",
+        "price": 45,
+        "salePrice": 45,
+        "stock": 150,
+        "unit": "Packet",
+        "image": null
+    },
+    {
+        "id": "PROD-004",
+        "name": "Lasan Kaju",
+        "nameGujarati": "લસણ કાજુ",
+        "price": 45,
+        "salePrice": 45,
+        "stock": 150,
+        "unit": "Packet",
+        "image": null
+    },
+    {
+        "id": "PROD-005",
+        "name": "Chaumin Noodles",
+        "nameGujarati": "ચૌમીન નૂડલ્સ",
+        "price": 45,
+        "salePrice": 45,
+        "stock": 150,
+        "unit": "Packet",
+        "image": null
+    },
+    {
+        "id": "PROD-006",
+        "name": "Hot Chilli",
+        "nameGujarati": "હોટ ચિલી",
+        "price": 45,
+        "salePrice": 45,
+        "stock": 150,
+        "unit": "Packet",
+        "image": null
+    },
+    {
+        "id": "PROD-007",
+        "name": "3 Patti",
+        "nameGujarati": "૩ પત્તી",
+        "price": 45,
+        "salePrice": 45,
+        "stock": 150,
+        "unit": "Packet",
+        "image": null
+    },
+    {
+        "id": "PROD-008",
+        "name": "Gadi",
+        "nameGujarati": "ગાડી",
+        "price": 44,
+        "salePrice": 44,
+        "stock": 150,
+        "unit": "Packet",
+        "image": null
+    },
+    {
+        "id": "PROD-009",
+        "name": "finger chips",
+        "nameGujarati": "ફિંગર ચિપ્સ",
+        "price": 45,
+        "salePrice": 45,
+        "stock": 150,
+        "unit": "Packet",
+        "image": null
+    },
+    {
+        "id": "PROD-010",
+        "name": "soya chips",
+        "nameGujarati": "સોયા ચિપ્સ",
+        "price": 46,
+        "salePrice": 46,
+        "stock": 150,
+        "unit": "Packet",
+        "image": null
+    },
+    {
+        "id": "PROD-011",
+        "name": "Soya stick",
+        "nameGujarati": "સોયા સ્ટિક",
+        "price": 46,
+        "salePrice": 46,
+        "stock": 150,
+        "unit": "Packet",
+        "image": null
+    },
+    {
+        "id": "PROD-012",
+        "name": "Petpooja noodles",
+        "nameGujarati": "પેટપૂજા નૂડલ્સ",
+        "price": 45,
+        "salePrice": 45,
+        "stock": 150,
+        "unit": "Packet",
+        "image": null
+    },
+    {
+        "id": "PROD-013",
+        "name": "Target noodles",
+        "nameGujarati": "ટાર્ગેટ નૂડલ્સ",
+        "price": 45,
+        "salePrice": 45,
+        "stock": 150,
+        "unit": "Packet",
+        "image": null
+    },
+    {
+        "id": "PROD-014",
+        "name": "Target ring",
+        "nameGujarati": "ટાર્ગેટ રીંગ",
+        "price": 45,
+        "salePrice": 45,
+        "stock": 150,
+        "unit": "Packet",
+        "image": null
+    },
+    {
+        "id": "PROD-015",
+        "name": "Target",
+        "nameGujarati": "ટાર્ગેટ",
+        "price": 45,
+        "salePrice": 45,
+        "stock": 150,
+        "unit": "Packet",
+        "image": null
+    },
+    {
+        "id": "PROD-016",
+        "name": "Seema",
+        "nameGujarati": "સીમા",
+        "price": 45,
+        "salePrice": 45,
+        "stock": 150,
+        "unit": "Packet",
+        "image": null
+    }
+]/*END_PRODUCTS*/;
+                },
+
+                getDefaultCustomers() {
+                    return /*START_CUSTOMERS*/[
+    {
+        "id": "CUST-IMP-1779592349664-1",
+        "name": "Aditya sales(devkubhai)",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349664-2",
+        "name": "Momai sales(Dankubhai)",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349664-3",
+        "name": "Dhaval sales",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349664-4",
+        "name": "Harsiddhi mall",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349664-5",
+        "name": "Harsiddhi Chotila",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349664-6",
+        "name": "Gujarat sales chotila",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349664-7",
+        "name": "SanjayBhai chotila",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349664-8",
+        "name": "SanjayBhai",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349664-9",
+        "name": "SanjayBhai prajapati park",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349664-10",
+        "name": "Nijarbhai",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349664-11",
+        "name": "Rajubhai",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349664-12",
+        "name": "Shakti mart",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349664-13",
+        "name": "New shakti",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349664-14",
+        "name": "Rafikbhai",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-15",
+        "name": "Yogi bakery",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-16",
+        "name": "Kothari mall",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-17",
+        "name": "Bhuro",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-18",
+        "name": "Mehulbhai",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-19",
+        "name": "Savjibhai",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-20",
+        "name": "Udaybhai",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-21",
+        "name": "Palasa",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-22",
+        "name": "Raymalbhai khakhrala",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-23",
+        "name": "Janakbhai khakhrali",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-24",
+        "name": "Sureshbhai",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-25",
+        "name": "Pankajbhai",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-26",
+        "name": "Super pan house",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-27",
+        "name": "Faizal",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-28",
+        "name": "Chamunda pan than",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-29",
+        "name": "Jadeja sales chotila",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-30",
+        "name": "Kisan chotila",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-31",
+        "name": "Chitrakut chotila",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-32",
+        "name": "Momai pan",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-33",
+        "name": "Jatinbhai sara",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-34",
+        "name": "Yogeshbhai kashipar",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-35",
+        "name": "Parthbhai sara",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-36",
+        "name": "Mihirbhai",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-37",
+        "name": "Nileshbhai vijaliya",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-38",
+        "name": "Maheshbhai navagam",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-39",
+        "name": "Millennium mall",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-40",
+        "name": "Tulsi mall",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-41",
+        "name": "Prajapati sales chotila",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-42",
+        "name": "Kalubhai",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-43",
+        "name": "Gurukrupa general",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-44",
+        "name": "Dipak bhai chandreliya",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-45",
+        "name": "Jugabhai chotila",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-46",
+        "name": "Munabhai navagam",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-47",
+        "name": "Dharmendrabhai Dhandhalpur",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-48",
+        "name": "Ronak pan",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-49",
+        "name": "Bharatbhai",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-50",
+        "name": "Savjibhai chitralakh",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-51",
+        "name": "Vasuki general than",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-52",
+        "name": "Vasuki general umarda",
+        "phone": "",
+        "email": "",
+        "address": ""
+    },
+    {
+        "id": "CUST-IMP-1779592349665-53",
+        "name": "K.k mart",
+        "phone": "",
+        "email": "",
+        "address": ""
+    }
+]/*END_CUSTOMERS*/;
+                },
+
+                getDefaultInvoices() {
+                    return /*START_INVOICES*/[
+    {
+        "id": "3",
+        "customer": "Dhaval sales",
+        "date": "2026-05-24",
+        "items": [
+            {
+                "id": "PROD-001",
+                "description": "Khichdi",
+                "gujaratiName": "ખીચડી",
+                "quantity": 1,
+                "price": 45,
+                "unit": "Packet",
+                "image": null
+            }
+        ],
+        "subtotal": 45,
+        "total": 45,
+        "status": "Pending",
+        "paidAmount": 0,
+        "payments": []
+    },
+    {
+        "id": "2",
+        "customer": "Momai sales(Dankubhai)",
+        "date": "2026-05-24",
+        "items": [
+            {
+                "id": "PROD-002",
+                "description": "Pasta",
+                "gujaratiName": "પાસ્તા",
+                "quantity": 50,
+                "price": 45,
+                "unit": "Packet",
+                "image": null
+            },
+            {
+                "id": "PROD-003",
+                "description": "Garlic kaju",
+                "gujaratiName": "ગાર્લિક કાજુ",
+                "quantity": 25,
+                "price": 45,
+                "unit": "Packet",
+                "image": null
+            },
+            {
+                "id": "PROD-004",
+                "description": "Lasan Kaju",
+                "gujaratiName": "લસણ કાજુ",
+                "quantity": 15,
+                "price": 45,
+                "unit": "Packet",
+                "image": null
+            }
+        ],
+        "subtotal": 4050,
+        "total": 4050,
+        "status": "Pending",
+        "paidAmount": 0,
+        "payments": []
+    },
+    {
+        "id": "1",
+        "customer": "Aditya sales(devkubhai)",
+        "date": "2026-05-24",
+        "items": [
+            {
+                "id": "PROD-001",
+                "description": "Khichdi",
+                "gujaratiName": "ખીચડી",
+                "quantity": 15,
+                "price": 45,
+                "unit": "Packet",
+                "image": null
+            }
+        ],
+        "subtotal": 675,
+        "total": 675,
+        "status": "Pending",
+        "paidAmount": 0,
+        "payments": []
+    }
+]/*END_INVOICES*/;
+                },
+
+                saveToStorage(key, value) {
+                    localStorage.setItem(key, JSON.stringify(value));
+                },
+
+                seedDemoData() {
+                    if (confirm('This will RESET your current screen data and load high-fidelity sample records. Proceed?')) {
+                        this.products = this.getDefaultProducts();
+                        this.customers = this.getDefaultCustomers();
+                        this.invoices = [
+                            {
+                                id: '1001',
+                                customer: 'Rahul Sharma',
+                                date: '2026-05-20',
+                                items: [
+                                    { description: 'Khichdi', quantity: 2, price: 45.00, unit: 'Packet' },
+                                    { description: 'Lasan Kaju', quantity: 10, price: 45.00, unit: 'Packet' }
+                                ],
+                                subtotal: 540.00,
+                                total: 540.00,
+                                paidAmount: 540.00,
+                                payments: [{ id: 'PAY-1', amount: 540.00, date: '2026-05-20', method: 'UPI / PhonePe', note: 'Paid fully via UPI' }],
+                                status: 'Paid'
+                            },
+                            {
+                                id: '1002',
+                                customer: 'Priya Patel',
+                                date: '2026-05-22',
+                                items: [
+                                    { description: 'Garlic kaju', quantity: 5, price: 45.00, unit: 'Packet' },
+                                    { description: 'Gadi', quantity: 5, price: 44.00, unit: 'Packet' }
+                                ],
+                                subtotal: 445.00,
+                                total: 445.00,
+                                paidAmount: 200.00,
+                                payments: [{ id: 'PAY-2', amount: 200.00, date: '2026-05-22', method: 'Cash', note: 'Token payment' }],
+                                status: 'Partial'
+                            },
+                            {
+                                id: '1003',
+                                customer: 'Amit Singh',
+                                date: '2026-05-24',
+                                items: [
+                                    { description: 'soya chips', quantity: 10, price: 46.00, unit: 'Packet' }
+                                ],
+                                subtotal: 460.00,
+                                total: 460.00,
+                                paidAmount: 0,
+                                payments: [],
+                                status: 'Pending'
+                            }
+                        ];
+
+                        this.saveToStorage('products', this.products);
+                        this.saveToStorage('customers', this.customers);
+                        this.saveToStorage('invoices', this.invoices);
+                        alert('Sample database reset and loaded successfully!');
+                    }
+                },
+
+                // EXPORT JSON DATA BACKUP (Solves Origin Isolation)
+                exportBackupData() {
+                    const backupObj = {
+                        version: "1.0.0",
+                        timestamp: new Date().toISOString(),
+                        products: this.products,
+                        customers: this.customers,
+                        invoices: this.invoices
+                    };
+
+                    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(backupObj, null, 2))}`;
+                    const downloadAnchor = document.createElement('a');
+                    downloadAnchor.setAttribute("href", jsonString);
+                    downloadAnchor.setAttribute("download", `ShaktiSales_Backup_${new Date().toISOString().split('T')[0]}.json`);
+                    document.body.appendChild(downloadAnchor);
+                    downloadAnchor.click();
+                    downloadAnchor.remove();
+                },
+
+                // IMPORT JSON DATA BACKUP
+                importBackupData(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const imported = JSON.parse(e.target.result);
+                            if (imported && (imported.products || imported.customers || imported.invoices)) {
+                                if (imported.products) this.products = imported.products;
+                                if (imported.customers) this.customers = imported.customers;
+                                if (imported.invoices) this.invoices = imported.invoices;
+
+                                this.saveToStorage('products', this.products);
+                                this.saveToStorage('customers', this.customers);
+                                this.saveToStorage('invoices', this.invoices);
+
+                                alert('Backup loaded and synchronized with local database successfully!');
+                                this.activeTab = 'dashboard';
+                            } else {
+                                alert('Invalid backup file formatting. Make sure it is a valid Shakti Sales backup file.');
+                            }
+                        } catch (err) {
+                            console.error('Failed to parse backup JSON file', err);
+                            alert('Failed to parse JSON backup file. Make sure file is not corrupted.');
+                        }
+                    };
+                    reader.readAsText(file);
+                },
+
+                importProductsCSV(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    const fileName = file.name.toLowerCase();
+                    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                        alert('❌ Excel files (.xlsx/.xls) are binary and not supported directly.\n\nPlease open your file in Excel, choose "Save As" > "CSV (Comma delimited) (*.csv)", and import that CSV file instead.');
+                        event.target.value = '';
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const text = e.target.result;
+                            // ZIP archive checks (Excel .xlsx are disguised ZIP archives)
+                            if (text.startsWith('PK') || text.includes('docProps/') || text.includes('xl/')) {
+                                alert('❌ Invalid CSV file format.\n\nIt appears you renamed a binary Excel file (.xlsx) to .csv. Please save the sheet properly to CSV in Excel first.');
+                                return;
+                            }
+                            
+                            const lines = text.split('\n');
+                            if (lines.length === 0) return;
+                            
+                            let importCount = 0;
+                            const startIndex = lines[0].toLowerCase().includes('name') ? 1 : 0;
+                            
+                            for (let i = startIndex; i < lines.length; i++) {
+                                const line = lines[i].trim();
+                                if (!line) continue;
+                                
+                                const parts = line.split(',').map(s => s.trim());
+                                if (parts.length >= 1 && parts[0]) {
+                                    const name = parts[0];
+                                    const nameGujarati = parts[1] || '';
+                                    const price = parseFloat(parts[2]) || 0;
+                                    const salePrice = parseFloat(parts[3]) || price;
+                                    const stock = parseInt(parts[4]) || 0;
+                                    const unit = parts[5] || 'Nos.';
+                                    
+                                    const exists = this.products.some(p => p.name.toLowerCase() === name.toLowerCase());
+                                    if (!exists) {
+                                        const newId = 'PROD-IMP-' + Date.now() + '-' + i;
+                                        this.products.push({
+                                            id: newId,
+                                            name,
+                                            nameGujarati,
+                                            price,
+                                            salePrice,
+                                            stock,
+                                            unit
+                                        });
+                                        importCount++;
+                                    }
+                                }
+                            }
+                            if (importCount > 0) {
+                                this.saveToStorage('products', this.products);
+                                alert(`Successfully imported ${importCount} products!`);
+                            } else {
+                                alert('No new products were imported. They might already exist.');
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            alert('Failed to parse CSV file. Make sure it is correctly formatted.');
+                        }
+                    };
+                    reader.readAsText(file);
+                    event.target.value = '';
+                },
+
+                importCustomersCSV(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    const fileName = file.name.toLowerCase();
+                    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                        alert('❌ Excel files (.xlsx/.xls) are binary and not supported directly.\n\nPlease open your file in Excel, choose "Save As" > "CSV (Comma delimited) (*.csv)", and import that CSV file instead.');
+                        event.target.value = '';
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const text = e.target.result;
+                            // ZIP archive checks (Excel .xlsx are disguised ZIP archives)
+                            if (text.startsWith('PK') || text.includes('docProps/') || text.includes('xl/')) {
+                                alert('❌ Invalid CSV file format.\n\nIt appears you renamed a binary Excel file (.xlsx) to .csv. Please save the sheet properly to CSV in Excel first.');
+                                return;
+                            }
+                            
+                            const lines = text.split('\n');
+                            if (lines.length === 0) return;
+                            
+                            let importCount = 0;
+                            const startIndex = lines[0].toLowerCase().includes('name') ? 1 : 0;
+                            
+                            for (let i = startIndex; i < lines.length; i++) {
+                                const line = lines[i].trim();
+                                if (!line) continue;
+                                
+                                const parts = line.split(',').map(s => s.trim());
+                                if (parts.length >= 1 && parts[0]) {
+                                    const name = parts[0];
+                                    const phone = parts[1] || '';
+                                    const email = parts[2] || '';
+                                    const address = parts[3] || '';
+                                    
+                                    const exists = this.customers.some(c => c.name.toLowerCase() === name.toLowerCase());
+                                    if (!exists) {
+                                        const newId = 'CUST-IMP-' + Date.now() + '-' + i;
+                                        this.customers.push({
+                                            id: newId,
+                                            name,
+                                            phone,
+                                            email,
+                                            address
+                                        });
+                                        importCount++;
+                                    }
+                                }
+                            }
+                            if (importCount > 0) {
+                                this.saveToStorage('customers', this.customers);
+                                alert(`Successfully imported ${importCount} customers!`);
+                            } else {
+                                alert('No new customers were imported. They might already exist.');
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            alert('Failed to parse CSV file. Make sure it is correctly formatted.');
+                        }
+                    };
+                    reader.readAsText(file);
+                    event.target.value = '';
+                },
+
+                downloadSampleCSV(type) {
+                    let headers, rows, filename;
+                    if (type === 'products') {
+                        headers = 'Name,Gujarati Name,Price,Sale Price,Stock,Unit';
+                        rows = [
+                            'Khichdi,ખીચડી,45.00,45.00,150,Packet',
+                            'Pasta,પાસ્તા,45.00,45.00,150,Packet',
+                            'Gadi,ગાડી,44.00,44.00,150,Packet'
+                        ];
+                        filename = 'sample_products.csv';
+                    } else {
+                        headers = 'Name,Phone,Email,Address';
+                        rows = [
+                            'Rahul Sharma,9876543210,rahul.sharma@example.com,123 MG Road Mumbai',
+                            'Priya Patel,8765432109,priya.patel@example.com,456 CG Road Ahmedabad'
+                        ];
+                        filename = 'sample_customers.csv';
+                    }
+                    
+                    const content = headers + '\n' + rows.join('\n');
+                    const blob = new Blob([content], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                },
+
+                // Numbers formatting
+                formatIndianRupee(number) {
+                    if (number === undefined || number === null) return '0.00';
+                    const x = number.toString().split('.');
+                    let x1 = x[0];
+                    const x2 = x.length > 1 ? '.' + x[1] : '.00';
+                    let lastThree = x1.slice(-3);
+                    let otherNumbers = x1.slice(0, -3);
+                    if (otherNumbers !== '') {
+                        lastThree = ',' + lastThree;
+                    }
+                    const res = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + lastThree + x2;
+                    return res;
+                },
+
+                formatDate(dateStr) {
+                    if (!dateStr) return '';
+                    const parts = dateStr.split('-');
+                    if (parts.length === 3) {
+                        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                    }
+                    return dateStr;
+                },
+
+                // Analytics compute getters
+                getStats() {
+                    const totalRevenue = this.invoices.reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
+                    const totalReceived = this.invoices.reduce((sum, inv) => sum + (Number(inv.paidAmount) || 0), 0);
+                    const totalOutstanding = totalRevenue - totalReceived;
+                    return { revenue: totalRevenue, received: totalReceived, pending: totalOutstanding };
+                },
+
+                getPaidCount() {
+                    return this.invoices.filter(inv => inv.status === 'Paid').length;
+                },
+
+                getPendingCount() {
+                    return this.invoices.filter(inv => inv.status === 'Pending').length;
+                },
+
+                getPartialCount() {
+                    return this.invoices.filter(inv => inv.status === 'Partial').length;
+                },
+
+                getRecentInvoices() {
+                    return this.invoices.slice(0, 5);
+                },
+
+                getTopCustomers() {
+                    const map = {};
+                    this.invoices.forEach(inv => {
+                        const name = inv.customer || 'Cash Customer';
+                        if (!map[name]) map[name] = { name, total: 0, bills: 0 };
+                        map[name].total += Number(inv.total) || 0;
+                        map[name].bills += 1;
+                    });
+                    return Object.values(map).sort((a, b) => b.total - a.total).slice(0, 5);
+                },
+
+                getStatusClass(status) {
+                    switch (status) {
+                        case 'Paid': return 'bg-emerald-50 text-emerald-700 border border-emerald-100';
+                        case 'Partial': return 'bg-blue-50 text-blue-700 border border-blue-100';
+                        case 'Pending': return 'bg-amber-50 text-amber-700 border border-amber-100';
+                        default: return 'bg-slate-50 text-slate-700 border border-slate-100';
+                    }
+                },
+
+                // Filters search execution
+                getFilteredInvoices() {
+                    if (!Array.isArray(this.invoices)) return [];
+                    return this.invoices.filter(inv => {
+                        if (!inv) return false;
+                        const nameMatch = (inv.customer || '').toLowerCase().includes(this.searchQuery.toLowerCase());
+                        const idStr = String(inv.id || '');
+                        const idMatch = idStr.includes(this.searchQuery);
+                        const queryMatch = nameMatch || idMatch;
+                        
+                        if (this.statusFilter === 'All') return queryMatch;
+                        return queryMatch && inv.status === this.statusFilter;
+                    });
+                },
+
+                getFilteredProducts() {
+                    if (!Array.isArray(this.products)) return [];
+                    return this.products.filter(p => {
+                        if (!p) return false;
+                        const nameEng = (p.name || '').toLowerCase().includes(this.productSearch.toLowerCase());
+                        const nameGuj = (p.nameGujarati || '').toLowerCase().includes(this.productSearch.toLowerCase());
+                        const idStr = String(p.id || '');
+                        const idMatch = idStr.toLowerCase().includes(this.productSearch.toLowerCase());
+                        return nameEng || nameGuj || idMatch;
+                    });
+                },
+
+                getFilteredCustomers() {
+                    if (!Array.isArray(this.customers)) return [];
+                    return this.customers.filter(c => {
+                        if (!c) return false;
+                        const nameMatch = (c.name || '').toLowerCase().includes(this.customerSearch.toLowerCase());
+                        const phoneMatch = String(c.phone || '').includes(this.customerSearch);
+                        return nameMatch || phoneMatch;
+                    });
+                },
+
+                getCustomerDetails(name) {
+                    if (!Array.isArray(this.customers)) return null;
+                    return this.customers.find(c => c.name === name);
+                },
+
+                // Invoice Item Operations
+                resetInvoiceForm() {
+                    this.newInvoice = {
+                        customer: 'Cash Sale',
+                        date: new Date().toISOString().split('T')[0],
+                        items: [
+                            { description: '', quantity: 1, price: 0, unit: 'Nos.' }
+                        ]
+                    };
+                },
+
+                addInvoiceItemRow() {
+                    this.newInvoice.items.push({ description: '', quantity: 1, price: 0, unit: 'Nos.' });
+                },
+
+                removeInvoiceItemRow(index) {
+                    if (this.newInvoice.items.length > 1) {
+                        this.newInvoice.items.splice(index, 1);
+                    }
+                },
+
+                calculateSubtotal() {
+                    return this.newInvoice.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+                },
+
+                openProductPickerForInvoiceRow(index) {
+                    this.activeInvoiceRowIndex = index;
+                    this.productSearch = '';
+                    this.showProductPicker = true;
+                },
+
+                openProductPickerForInvoice() {
+                    this.activeInvoiceRowIndex = null;
+                    this.productSearch = '';
+                    this.showProductPicker = true;
+                },
+
+                selectProductForInvoice(product) {
+                    const price = Number(product.salePrice || product.price) || 0;
+                    const unit = product.unit || 'Nos.';
+                    
+                    if (this.activeInvoiceRowIndex !== null) {
+                        const row = this.newInvoice.items[this.activeInvoiceRowIndex];
+                        row.description = product.name;
+                        row.price = price;
+                        row.unit = unit;
+                    } else {
+                        // Check if the last item is empty and reuse it, otherwise push a new row
+                        const lastItem = this.newInvoice.items[this.newInvoice.items.length - 1];
+                        if (lastItem.description === '' && lastItem.price === 0) {
+                            lastItem.description = product.name;
+                            lastItem.price = price;
+                            lastItem.unit = unit;
+                        } else {
+                            this.newInvoice.items.push({
+                                description: product.name,
+                                quantity: 1,
+                                price: price,
+                                unit: unit
+                            });
+                        }
+                    }
+                    this.showProductPicker = false;
+                },
+
+                saveInvoice() {
+                    if (!this.newInvoice.customer) {
+                        alert('Please identify a customer for this invoice.');
+                        return;
+                    }
+                    
+                    // Filter out empty descriptions
+                    const validItems = this.newInvoice.items.filter(i => i.description.trim() !== '');
+                    if (validItems.length === 0) {
+                        alert('Invoice must contain at least one descriptive item.');
+                        return;
+                    }
+
+                    const subtotal = this.newInvoice.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+                    
+                    // Generate new ID
+                    let nextId = '1001';
+                    if (this.invoices.length > 0) {
+                        const maxId = Math.max(...this.invoices.map(inv => parseInt(inv.id, 10)).filter(n => !isNaN(n)));
+                        if (maxId !== -Infinity && !isNaN(maxId)) {
+                            nextId = (maxId + 1).toString();
+                        } else {
+                            nextId = (this.invoices.length + 1001).toString();
+                        }
+                    }
+
+                    const savedBill = {
+                        id: nextId,
+                        customer: this.newInvoice.customer,
+                        date: this.newInvoice.date,
+                        items: validItems,
+                        subtotal: subtotal,
+                        total: subtotal,
+                        paidAmount: 0,
+                        payments: [],
+                        status: 'Pending'
+                    };
+
+                    this.invoices.unshift(savedBill);
+                    this.saveToStorage('invoices', this.invoices);
+                    
+                    // Deduct catalog stock automatically
+                    validItems.forEach(item => {
+                        const matchProd = this.products.find(p => p.name.toLowerCase() === item.description.toLowerCase());
+                        if (matchProd) {
+                            matchProd.stock = Math.max(0, matchProd.stock - item.quantity);
+                        }
+                    });
+                    this.saveToStorage('products', this.products);
+
+                    this.resetInvoiceForm();
+                    this.activeTab = 'invoices';
+                    alert(`Invoice #${savedBill.id} created and logged successfully!`);
+                },
+
+                deleteInvoiceItem(id) {
+                    if (confirm(`Are you absolutely sure you want to delete Invoice #${id}? This action is irreversible.`)) {
+                        this.invoices = this.invoices.filter(inv => inv.id !== id);
+                        this.saveToStorage('invoices', this.invoices);
+                        this.selectedInvoice = null;
+                    }
+                },
+
+                viewInvoiceDetails(invoice) {
+                    this.selectedInvoice = invoice;
+                },
+
+                // PDF Exports & Print Engine
+                printInvoice() {
+                    window.print();
+                },
+
+                printThermalInvoice() {
+                    const originalTitle = document.title;
+                    document.title = `Thermal_${this.selectedInvoice.id}_${this.selectedInvoice.customer.replace(/\s+/g, '_')}`;
+
+                    // Inject print size styles for thermal 80mm roll
+                    const style = document.createElement('style');
+                    style.id = 'thermal-print-page-style';
+                    style.innerHTML = `@media print { @page { size: 80mm auto; margin: 0; } }`;
+                    document.head.appendChild(style);
+
+                    document.body.classList.add('print-mode-thermal');
+                    setTimeout(() => {
+                        window.print();
+                        document.body.classList.remove('print-mode-thermal');
+                        const pageStyle = document.getElementById('thermal-print-page-style');
+                        if (pageStyle) pageStyle.remove();
+                        document.title = originalTitle;
+                    }, 100);
+                },
+
+                downloadInvoicePDF() {
+                    const invoiceElement = document.getElementById('invoice-print-area');
+                    const filename = `Invoice_${this.selectedInvoice.customer.replace(/\s+/g, '_')}_#${this.selectedInvoice.id}.pdf`;
+                    
+                    // Temporarily apply print layout options to ensure proper sizes
+                    const opt = {
+                        margin:       [10, 10, 10, 10],
+                        filename:     filename,
+                        image:        { type: 'jpeg', quality: 0.98 },
+                        html2canvas:  { scale: 2, useCORS: true },
+                        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                    };
+
+                    // Hide buttons/scrollbars if present in the target container
+                    html2pdf().from(invoiceElement).set(opt).save();
+                },
+
+                downloadThermalPDF() {
+                    const el = document.querySelector('.thermal-receipt');
+                    if (!el) return;
+                    
+                    // Temporarily display thermal receipt to render
+                    el.style.display = 'block';
+                    
+                    const filename = `Thermal_${this.selectedInvoice.customer.replace(/\s+/g, '_')}_#${this.selectedInvoice.id}.pdf`;
+                    const opt = {
+                        margin:       2,
+                        filename:     filename,
+                        image:        { type: 'jpeg', quality: 0.98 },
+                        html2canvas:  { scale: 2, useCORS: true },
+                        jsPDF:        { unit: 'mm', format: [80, 200], orientation: 'portrait' }
+                    };
+
+                    html2pdf().from(el).set(opt).save().then(() => {
+                        el.style.display = '';
+                    });
+                },
+
+                // Payments Sub-System
+                openPaymentModalForSelected() {
+                    this.paymentForm = {
+                        amount: this.selectedInvoice.total - this.selectedInvoice.paidAmount,
+                        date: new Date().toISOString().split('T')[0],
+                        method: 'Cash',
+                        note: ''
+                    };
+                    this.showPaymentModal = true;
+                },
+
+                saveInvoicePayment() {
+                    if (this.paymentForm.amount <= 0) {
+                        alert('Amount must be a positive number.');
+                        return;
+                    }
+
+                    const outstanding = this.selectedInvoice.total - this.selectedInvoice.paidAmount;
+                    if (this.paymentForm.amount > outstanding) {
+                        if (!confirm(`Paid amount (₹${this.paymentForm.amount}) exceeds outstanding balance (₹${outstanding}). Complete this payment anyway?`)) {
+                            return;
+                        }
+                    }
+
+                    const payObject = {
+                        id: 'PAY-' + Date.now(),
+                        amount: Number(this.paymentForm.amount),
+                        date: this.paymentForm.date,
+                        method: this.paymentForm.method,
+                        note: this.paymentForm.note
+                    };
+
+                    // Append payment
+                    if (!this.selectedInvoice.payments) this.selectedInvoice.payments = [];
+                    this.selectedInvoice.payments.push(payObject);
+                    this.selectedInvoice.paidAmount = (this.selectedInvoice.paidAmount || 0) + payObject.amount;
+
+                    // Compute and update status
+                    if (this.selectedInvoice.paidAmount >= this.selectedInvoice.total) {
+                        this.selectedInvoice.status = 'Paid';
+                    } else if (this.selectedInvoice.paidAmount > 0) {
+                        this.selectedInvoice.status = 'Partial';
+                    } else {
+                        this.selectedInvoice.status = 'Pending';
+                    }
+
+                    // Save parent list
+                    this.invoices = this.invoices.map(inv => inv.id === this.selectedInvoice.id ? this.selectedInvoice : inv);
+                    this.saveToStorage('invoices', this.invoices);
+                    this.showPaymentModal = false;
+                    alert('Payment recorded and synced with ledger.');
+                },
+
+                deletePaymentItem(invoiceId, paymentId) {
+                    if (confirm('Delete this payment transaction from the invoice registry?')) {
+                        const inv = this.invoices.find(i => i.id === invoiceId);
+                        if (inv) {
+                            inv.payments = (inv.payments || []).filter(p => p.id !== paymentId);
+                            inv.paidAmount = inv.payments.reduce((sum, p) => sum + p.amount, 0);
+
+                            // Recalculate status
+                            if (inv.paidAmount >= inv.total && inv.total > 0) {
+                                inv.status = 'Paid';
+                            } else if (inv.paidAmount > 0) {
+                                inv.status = 'Partial';
+                            } else {
+                                inv.status = 'Pending';
+                            }
+
+                            this.invoices = this.invoices.map(i => i.id === invoiceId ? inv : i);
+                            this.saveToStorage('invoices', this.invoices);
+                            
+                            // Reflect back to details panel
+                            this.selectedInvoice = inv;
+                        }
+                    }
+                },
+
+                // Product forms
+                openProductModal(product = null) {
+                    if (product) {
+                        this.editingProduct = product;
+                        this.productForm = { ...product };
+                    } else {
+                        this.editingProduct = null;
+                        
+                        // Generate product ID
+                        let maxIdNum = 4;
+                        if (this.products.length > 0) {
+                            const ids = this.products.map(p => {
+                                const num = parseInt(p.id.replace('PROD-', ''), 10);
+                                return isNaN(num) ? 0 : num;
+                            });
+                            maxIdNum = Math.max(...ids) + 1;
+                        }
+                        const padded = String(maxIdNum).padStart(3, '0');
+                        
+                        this.productForm = {
+                            id: `PROD-${padded}`,
+                            name: '',
+                            nameGujarati: '',
+                            price: 0,
+                            salePrice: 0,
+                            stock: 10,
+                            unit: 'Nos.'
+                        };
+                    }
+                    this.showProductModal = true;
+                },
+
+                saveProductForm() {
+                    if (!this.productForm.name) {
+                        alert('Product English Title is mandatory.');
+                        return;
+                    }
+                    
+                    this.productForm.price = Number(this.productForm.salePrice) || Number(this.productForm.price) || 0;
+                    this.productForm.salePrice = Number(this.productForm.salePrice) || Number(this.productForm.price) || 0;
+
+                    if (this.editingProduct) {
+                        this.products = this.products.map(p => p.id === this.productForm.id ? this.productForm : p);
+                    } else {
+                        // Check uniqueness
+                        if (this.products.some(p => p.id === this.productForm.id)) {
+                            alert('A product with this unique ID already exists.');
+                            return;
+                        }
+                        this.products.push(this.productForm);
+                    }
+
+                    this.saveToStorage('products', this.products);
+                    this.showProductModal = false;
+                    alert('Product catalog records saved.');
+                },
+
+                deleteProductItem(id) {
+                    if (confirm(`Remove product ${id} from active catalog index?`)) {
+                        this.products = this.products.filter(p => p.id !== id);
+                        this.saveToStorage('products', this.products);
+                    }
+                },
+
+                // Customer Directory Actions
+                openCustomerModal(customer = null) {
+                    if (customer) {
+                        this.editingCustomer = customer;
+                        this.customerForm = { ...customer };
+                    } else {
+                        this.editingCustomer = null;
+                        
+                        let maxIdNum = 3;
+                        if (this.customers.length > 0) {
+                            const ids = this.customers.map(c => {
+                                const num = parseInt(c.id.replace('CUST-', ''), 10);
+                                return isNaN(num) ? 0 : num;
+                            });
+                            maxIdNum = Math.max(...ids) + 1;
+                        }
+                        const padded = String(maxIdNum).padStart(3, '0');
+
+                        this.customerForm = {
+                            id: `CUST-${padded}`,
+                            name: '',
+                            email: '',
+                            phone: '',
+                            address: ''
+                        };
+                    }
+                    this.showCustomerModal = true;
+                },
+
+                saveCustomerForm() {
+                    if (!this.customerForm.name) {
+                        alert('Customer Full Name is mandatory.');
+                        return;
+                    }
+
+                    if (this.editingCustomer) {
+                        this.customers = this.customers.map(c => c.id === this.customerForm.id ? this.customerForm : c);
+                    } else {
+                        if (this.customers.some(c => c.id === this.customerForm.id)) {
+                            alert('A customer account with this ID already exists.');
+                            return;
+                        }
+                        this.customers.unshift(this.customerForm);
+                    }
+
+                    this.saveToStorage('customers', this.customers);
+                    this.showCustomerModal = false;
+                    alert('Customer records saved.');
+                },
+
+                addCustomerInline(name) {
+                    let maxIdNum = 3;
+                    if (this.customers.length > 0) {
+                        const ids = this.customers.map(c => {
+                            const num = parseInt(c.id.replace('CUST-', ''), 10);
+                            return isNaN(num) ? 0 : num;
+                        });
+                        maxIdNum = Math.max(...ids) + 1;
+                    }
+                    const padded = String(maxIdNum).padStart(3, '0');
+
+                    const newCust = {
+                        id: `CUST-${padded}`,
+                        name: name,
+                        email: '',
+                        phone: '',
+                        address: ''
+                    };
+                    this.customers.unshift(newCust);
+                    this.saveToStorage('customers', this.customers);
+                },
+
+                deleteCustomerItem(id) {
+                    if (confirm(`Decommission buyer profile ${id}? This won't delete historical invoices.`)) {
+                        this.customers = this.customers.filter(c => c.id !== id);
+                        this.saveToStorage('customers', this.customers);
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
