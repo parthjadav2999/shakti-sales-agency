@@ -50,7 +50,11 @@ const CreateInvoice = () => {
 
     // Calculate totals
     useEffect(() => {
-        const newSubtotal = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+        const newSubtotal = items.reduce((sum, item) => {
+            const q = parseFloat(item.quantity) || 0;
+            const p = parseFloat(item.price) || 0;
+            return sum + (q * p);
+        }, 0);
         setSubtotal(newSubtotal);
         setTotal(newSubtotal);
     }, [items]);
@@ -79,7 +83,7 @@ const CreateInvoice = () => {
     };
 
     const updateItemQty = (productId, newQty) => {
-        if (newQty <= 0) {
+        if (newQty === 0) {
             setItems(prev => prev.filter(item => item.productId !== productId));
             return;
         }
@@ -110,6 +114,10 @@ const CreateInvoice = () => {
         }
         if (items.length === 0) {
             alert('Please add at least one product');
+            return;
+        }
+        if (items.some(i => !i.quantity || parseFloat(i.quantity) <= 0)) {
+            alert('Please enter a valid quantity for all selected products');
             return;
         }
 
@@ -372,7 +380,7 @@ const CreateInvoice = () => {
                                                 {selected && (
                                                     <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
                                                         <button
-                                                            onClick={() => updateItemQty(product.id, qty - 1)}
+                                                            onClick={() => updateItemQty(product.id, Math.max(0, (parseFloat(qty) || 0) - 1))}
                                                             className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 font-bold transition-colors text-sm"
                                                         >
                                                             −
@@ -381,15 +389,15 @@ const CreateInvoice = () => {
                                                             type="number"
                                                             value={qty}
                                                             onChange={(e) => {
-                                                                const val = parseFloat(e.target.value);
-                                                                if (val > 0) updateItemQty(product.id, val);
+                                                                const val = e.target.value;
+                                                                updateItemQty(product.id, val === '' ? '' : parseFloat(val));
                                                             }}
                                                             className="w-14 text-center text-sm font-bold border border-gray-200 rounded-lg py-1 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 outline-none transition-all"
-                                                            min="1"
+                                                            min="0"
                                                             step="any"
                                                         />
                                                         <button
-                                                            onClick={() => updateItemQty(product.id, qty + 1)}
+                                                            onClick={() => updateItemQty(product.id, (parseFloat(qty) || 0) + 1)}
                                                             className="w-7 h-7 rounded-lg bg-indigo-100 hover:bg-indigo-200 flex items-center justify-center text-indigo-600 font-bold transition-colors text-sm"
                                                         >
                                                             +
@@ -441,7 +449,10 @@ const CreateInvoice = () => {
                                                     <input
                                                         type="number"
                                                         value={item.quantity}
-                                                        onChange={(e) => updateItemQty(item.productId, parseFloat(e.target.value) || 0)}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            updateItemQty(item.productId, val === '' ? '' : parseFloat(val));
+                                                        }}
                                                         className="w-full bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-900 text-center py-1.5 px-2 focus:ring-1 focus:ring-gray-900 outline-none font-semibold transition-all hover:border-gray-300"
                                                     />
                                                 </td>
@@ -452,13 +463,16 @@ const CreateInvoice = () => {
                                                         <input
                                                             type="number"
                                                             value={item.price}
-                                                            onChange={(e) => updateItemPrice(item.productId, parseFloat(e.target.value) || 0)}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                updateItemPrice(item.productId, val === '' ? '' : parseFloat(val));
+                                                            }}
                                                             className="w-full bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-900 text-right py-1.5 pl-6 pr-3 focus:ring-1 focus:ring-gray-900 outline-none font-semibold transition-all hover:border-gray-300"
                                                         />
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
-                                                    <span className="text-sm font-bold text-gray-900">₹{(item.quantity * item.price).toFixed(2)}</span>
+                                                    <span className="text-sm font-bold text-gray-900">₹{((parseFloat(item.quantity) || 0) * (parseFloat(item.price) || 0)).toFixed(2)}</span>
                                                 </td>
                                                 <td className="px-2 py-3 text-center">
                                                     <button
@@ -596,7 +610,7 @@ const CreateInvoice = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                        <p className="text-sm font-black text-slate-900">₹{(item.quantity * item.price).toFixed(2)}</p>
+                                        <p className="text-sm font-black text-slate-900">₹{((parseFloat(item.quantity) || 0) * (parseFloat(item.price) || 0)).toFixed(2)}</p>
                                     </div>
                                 ))}
                             </div>
@@ -667,7 +681,7 @@ const CreateInvoice = () => {
                                                 <td className="py-3 text-center">{item.quantity}</td>
                                                 <td className="py-3 text-center">{item.unit || 'Nos.'}</td>
                                                 <td className="py-3 text-right">₹{item.price.toFixed(2)}</td>
-                                                <td className="py-3 text-right font-bold">₹{(item.quantity * item.price).toFixed(2)}</td>
+                                                <td className="py-3 text-right font-bold">₹{((parseFloat(item.quantity) || 0) * (parseFloat(item.price) || 0)).toFixed(2)}</td>
                                             </tr>
                                         ))}
                                     </tbody>
