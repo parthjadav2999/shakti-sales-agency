@@ -154,6 +154,10 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 New Invoice
             </button>
+            <button @click="activeTab = 'quick-bill'; initQuickBill()" :class="activeTab === 'quick-bill' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Quick Bill
+            </button>
             <button @click="activeTab = 'products'" :class="activeTab === 'products' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800'" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                 Product Catalog
@@ -649,6 +653,67 @@
         </div>
 
         <!-- ==================== 4. PRODUCTS VIEW ==================== -->
+        <!-- ==================== QUICK BILL VIEW ==================== -->
+        <div x-show="activeTab === 'quick-bill'" x-transition class="space-y-6 pb-20">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-4">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-900 tracking-tight font-outfit">Quick Bill POS</h2>
+                    <p class="text-slate-500 text-sm mt-1">Select customer and tap quantities to build a bill instantly.</p>
+                </div>
+            </div>
+
+            <!-- Customer Selection -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Customer</label>
+                <select x-model="quickBillCustomer" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+                    <option value="Cash Sale">Cash Sale (Walk-in)</option>
+                    <template x-for="customer in customers" :key="customer.id">
+                        <option :value="customer.name" x-text="customer.name"></option>
+                    </template>
+                </select>
+            </div>
+
+            <!-- Product Grid -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                    <h3 class="font-bold text-slate-900">Products List</h3>
+                    <input type="text" x-model="quickBillSearch" placeholder="Filter..." class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 max-w-[150px]">
+                </div>
+                <div class="divide-y divide-slate-100">
+                    <template x-for="product in products.filter(p => !quickBillSearch || p.name.toLowerCase().includes(quickBillSearch.toLowerCase()) || (p.nameGujarati && p.nameGujarati.includes(quickBillSearch)))" :key="product.id">
+                        <div class="p-3 md:p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                            <div class="flex-1">
+                                <h4 class="text-sm font-bold text-slate-900" x-text="product.name"></h4>
+                                <template x-if="product.nameGujarati">
+                                    <p class="text-xs text-slate-500 mt-0.5" x-text="product.nameGujarati"></p>
+                                </template>
+                                <p class="text-xs font-bold text-indigo-600 mt-1" x-text="'₹' + (product.salePrice || product.price) + ' / ' + (product.unit || 'Nos.')"></p>
+                            </div>
+                            
+                            <!-- Quantity Controls -->
+                            <div class="flex items-center gap-3">
+                                <button @click="quickBillCart[product.id] = Math.max(0, (quickBillCart[product.id] || 0) - 1)" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-lg hover:bg-slate-200">-</button>
+                                <input type="number" x-model.number="quickBillCart[product.id]" class="w-12 text-center font-bold text-slate-900 border-none bg-transparent p-0 focus:ring-0" placeholder="0" min="0">
+                                <button @click="quickBillCart[product.id] = (quickBillCart[product.id] || 0) + 1" class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg hover:bg-indigo-100">+</button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Sticky Checkout Footer -->
+            <div class="fixed bottom-[60px] md:bottom-0 left-0 md:left-64 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-200 flex items-center justify-between shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-30">
+                <div>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Amount</p>
+                    <p class="text-2xl font-black text-indigo-600" x-text="'₹' + formatIndianRupee(getQuickBillTotal().toFixed(2))">₹0</p>
+                </div>
+                <button @click="generateQuickBill()" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all">
+                    Generate Bill
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </button>
+            </div>
+        </div>
+
         <div x-show="activeTab === 'products'" x-transition class="space-y-6">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -823,8 +888,12 @@
             <span class="text-[10px]">Bills</span>
         </button>
         <button @click="activeTab = 'create-invoice'; resetInvoiceForm()" :class="activeTab === 'create-invoice' ? 'text-indigo-600 font-bold scale-105' : 'text-slate-400 hover:text-slate-600'" class="flex flex-col items-center gap-1 transition-all">
-            <svg class="w-6 h-6 text-indigo-600 bg-indigo-50 border border-indigo-200 p-1.5 rounded-full shadow-inner" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/></svg>
-            <span class="text-[10px] font-bold">New</span>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <span class="text-[10px]">Std Bill</span>
+        </button>
+        <button @click="activeTab = 'quick-bill'; initQuickBill()" :class="activeTab === 'quick-bill' ? 'text-indigo-600 font-bold scale-105' : 'text-slate-400 hover:text-slate-600'" class="flex flex-col items-center gap-1 transition-all">
+            <svg class="w-6 h-6 text-indigo-600 bg-indigo-50 border border-indigo-200 p-1 rounded-full shadow-inner" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <span class="text-[10px] font-bold">Fast</span>
         </button>
         <button @click="activeTab = 'products'" :class="activeTab === 'products' ? 'text-indigo-600 font-bold scale-105' : 'text-slate-400 hover:text-slate-600'" class="flex flex-col items-center gap-1 transition-all">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
@@ -1332,6 +1401,12 @@
                         { description: '', quantity: 1, price: 0, unit: 'Nos.' }
                     ]
                 },
+
+                // Quick Bill state
+                quickBillSearch: '',
+                quickBillCustomer: 'Cash Sale',
+                quickBillCart: {},
+
 
                 initData() {
                     // Protected try-catch initialization to avoid JSON parse crashes from empty/undefined strings
@@ -2383,6 +2458,55 @@
                     }
                     const res = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + lastThree + x2;
                     return res;
+                },
+
+                // Quick Bill Methods
+                initQuickBill() {
+                    this.quickBillSearch = '';
+                    this.quickBillCustomer = 'Cash Sale';
+                    this.quickBillCart = {};
+                },
+
+                getQuickBillTotal() {
+                    let total = 0;
+                    this.products.forEach(p => {
+                        const qty = this.quickBillCart[p.id] || 0;
+                        if (qty > 0) {
+                            total += qty * (p.salePrice || p.price);
+                        }
+                    });
+                    return total;
+                },
+
+                generateQuickBill() {
+                    const items = [];
+                    this.products.forEach(p => {
+                        const qty = this.quickBillCart[p.id] || 0;
+                        if (qty > 0) {
+                            items.push({
+                                description: p.name,
+                                quantity: qty,
+                                price: p.salePrice || p.price,
+                                unit: p.unit || 'Nos.'
+                            });
+                        }
+                    });
+
+                    if (items.length === 0) {
+                        alert('Please add at least one product quantity to generate a bill!');
+                        return;
+                    }
+
+                    this.newInvoice = {
+                        id: String(Date.now()),
+                        customer: this.quickBillCustomer,
+                        date: new Date().toISOString().split('T')[0],
+                        items: items
+                    };
+
+                    this.saveInvoice();
+                    // Optional: clear cart after saving
+                    this.quickBillCart = {};
                 },
 
                 formatDate(dateStr) {
